@@ -108,7 +108,7 @@
 
     <string name="perm_open">Open</string>
     <string name="perm_xiaomi">Xiaomi: show on lock screen</string>
-    <string name="perm_xiaomi_sub">Turn on “Show on lock screen” and “Display pop-up windows while running in the background”</string>
+    <string name="perm_xiaomi_sub">Turn on “Show on lock screen”, “Display pop-up windows while running in the background” and floating notifications</string>
     <string name="perm_autostart">Xiaomi: autostart</string>
     <string name="perm_autostart_sub">Allow Nagham to start itself so playback controls survive</string>
     <string name="perm_battery_oem">Battery: no restrictions</string>
@@ -121,6 +121,12 @@
     <string name="state_off">Off</string>
     <string name="up_next">Up next</string>
     <string name="fmt_min_one">Keep at least one format on</string>
+
+    <string name="queue_hint">Drag the handle to reorder · swipe a song away to remove it</string>
+    <string name="lock_wake">Show right after locking</string>
+    <string name="lock_wake_sub">A moment after you lock the phone, the screen lights up again with the player</string>
+    <string name="perm_chan">Lock-screen notification category</string>
+    <string name="perm_chan_sub">Keep it on “Urgent / pop on screen” and allow floating and lock-screen display</string>
 
     <string-array name="fmt_subs">
         <item>.mp3</item>

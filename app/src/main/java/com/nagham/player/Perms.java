@@ -51,6 +51,21 @@ public final class Perms {
         return true;
     }
 
+    /** The lock-screen category must stay "urgent / pop on screen", otherwise the system never launches it over the lock. */
+    public static boolean hasLockChannel(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return true;
+        android.app.NotificationChannel ch = ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE))
+                .getNotificationChannel(App.CH_LOCK);
+        return ch == null || ch.getImportance() >= NotificationManager.IMPORTANCE_HIGH;
+    }
+
+    public static void askLockChannel(Activity a) {
+        Intent i = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, a.getPackageName())
+                .putExtra(Settings.EXTRA_CHANNEL_ID, App.CH_LOCK);
+        start(a, i);
+    }
+
     public static boolean hasBattery(Context c) {
         PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
         return pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName());
@@ -61,7 +76,7 @@ public final class Perms {
     }
 
     public static boolean anyMissing(Context c) {
-        return !hasAudio(c) || !hasNotif(c) || !hasFsi(c) || !hasBt(c);
+        return !hasAudio(c) || !hasNotif(c) || !hasFsi(c) || !hasLockChannel(c) || !hasBt(c);
     }
 
     /** Runtime permissions asked together on first launch. */

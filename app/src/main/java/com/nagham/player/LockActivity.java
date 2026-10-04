@@ -37,6 +37,7 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
     private final BroadcastReceiver closer = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent i) {
+            LockLauncher.lastSeen = android.os.SystemClock.elapsedRealtime();
             finish();
         }
     };
@@ -239,11 +240,13 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
     protected void onStart() {
         super.onStart();
         Pb.connect(this);
+        LockLauncher.lastSeen = android.os.SystemClock.elapsedRealtime();
         np.start();
     }
 
     @Override
     protected void onStop() {
+        LockLauncher.lastSeen = android.os.SystemClock.elapsedRealtime();
         np.stop();
         super.onStop();
     }

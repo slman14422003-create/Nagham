@@ -9,6 +9,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 
 import androidx.annotation.OptIn;
 import androidx.core.content.ContextCompat;
@@ -34,11 +35,33 @@ public class PlayerService extends MediaSessionService {
     private ExoPlayer player;
     private final Handler h = new Handler(Looper.getMainLooper());
 
+    private int tries;
+
+    private boolean wantsLock() {
+        return player != null && player.getMediaItemCount() > 0 && player.getPlayWhenReady()
+                && player.getPlaybackState() != Player.STATE_ENDED;
+    }
+
+    /** Right after the screen wakes the keyguard flag can lag a moment (Xiaomi / Samsung), so retry briefly. */
     private final Runnable showLockRunnable = new Runnable() {
         @Override
         public void run() {
+            if (!wantsLock()) return;
             KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-            if (player != null && player.isPlaying() && km != null && km.isKeyguardLocked()) LockLauncher.show(PlayerService.this);
+            if (km != null && km.isKeyguardLocked()) {
+                LockLauncher.show(PlayerService.this);
+            } else if (++tries < 10) {
+                h.postDelayed(this, 150);
+            }
+        }
+    };
+
+    /** Optional mode: a moment after you lock the phone, light the screen again with the player. */
+    private final Runnable wakeAfterLock = new Runnable() {
+        @Override
+        public void run() {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (wantsLock() && pm != null && !pm.isInteractive()) LockLauncher.show(PlayerService.this);
         }
     };
 
@@ -46,10 +69,16 @@ public class PlayerService extends MediaSessionService {
         @Override
         public void onReceive(Context c, Intent i) {
             String a = i.getAction();
-            h.removeCallbacks(showLockRunnable);
             if (Intent.ACTION_SCREEN_ON.equals(a)) {
-                // the keyguard needs a moment to settle (Samsung / Xiaomi are slower than Pixel)
-                if (Store.flag(c, "lock_auto", true)) h.postDelayed(showLockRunnable, 600);
+                h.removeCallbacks(wakeAfterLock);
+                h.removeCallbacks(showLockRunnable);
+                tries = 0;
+                if (Store.flag(c, "lock_auto", true)) h.post(showLockRunnable);
+            } else if (Intent.ACTION_SCREEN_OFF.equals(a)) {
+                h.removeCallbacks(showLockRunnable);
+                LockLauncher.clear(c);
+                boolean justClosedLock = android.os.SystemClock.elapsedRealtime() - LockLauncher.lastSeen < 4000;
+                if (Store.flag(c, "lock_wake", false) && !justClosedLock) h.postDelayed(wakeAfterLock, 1500);
             } else {
                 LockLauncher.clear(c);
             }

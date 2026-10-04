@@ -21,9 +21,12 @@ public final class LockLauncher {
     public static final int ID = 4401;
     private static final Handler H = new Handler(Looper.getMainLooper());
 
+    /** elapsedRealtime when the lock player was last visible, so pressing power on it doesn't instantly re-open it. */
+    public static volatile long lastSeen;
+
     /** True when the notification and "show over lock screen" access that the player needs are both granted. */
     public static boolean ready(Context c) {
-        return Perms.hasNotif(c) && Perms.hasFsi(c);
+        return Perms.hasNotif(c) && Perms.hasFsi(c) && Perms.hasLockChannel(c);
     }
 
     /** @return false when notifications or the "show over lock screen" access are missing. */

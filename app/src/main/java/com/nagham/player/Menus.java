@@ -9,8 +9,6 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.media3.common.MediaItem;
-import androidx.media3.session.MediaController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,26 +62,9 @@ public final class Menus {
         });
     }
 
-    /** What is coming up in the play queue; tap a row to jump to it. */
+    /** The play queue: reorder, remove, jump. */
     public static void queue(final Context c) {
-        Sheet.show(c, c.getString(R.string.up_next), () -> {
-            List<Sheet.Item> l = new ArrayList<>();
-            final MediaController m = Pb.get();
-            if (m == null) return l;
-            int cur = m.getCurrentMediaItemIndex(), n = m.getMediaItemCount();
-            for (int i = Math.max(0, cur); i < Math.min(n, cur + 60); i++) {
-                final int idx = i;
-                MediaItem it = m.getMediaItemAt(i);
-                String a = it.mediaMetadata.artist == null ? "" : it.mediaMetadata.artist.toString();
-                String t = it.mediaMetadata.title == null ? "" : it.mediaMetadata.title.toString();
-                l.add(Sheet.item(i == cur ? R.drawable.ic_play : R.drawable.ic_music, a.isEmpty() ? t : t + " — " + a,
-                        i == cur, false, () -> {
-                            m.seekToDefaultPosition(idx);
-                            m.play();
-                        }));
-            }
-            return l;
-        });
+        QueueSheet.show(c);
     }
 
     public static void sort(final Context c, final Runnable changed) {

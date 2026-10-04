@@ -77,6 +77,8 @@ public class SettingsActivity extends AppCompatActivity {
         LinearLayout lk = group(col);
         lk.addView(Ui.toggleRow(this, getString(R.string.lock_auto), getString(R.string.lock_auto_sub),
                 Store.flag(this, "lock_auto", true), (v, on) -> Store.setFlag(this, "lock_auto", on)));
+        lk.addView(Ui.toggleRow(this, getString(R.string.lock_wake), getString(R.string.lock_wake_sub),
+                Store.flag(this, "lock_wake", false), (v, on) -> Store.setFlag(this, "lock_wake", on)));
         lk.addView(Ui.toggleRow(this, getString(R.string.lock_blur), getString(R.string.lock_blur_sub),
                 Store.flag(this, "lock_blur", true), (v, on) -> Store.setFlag(this, "lock_blur", on)));
         lk.addView(Ui.settingRow(this, R.drawable.ic_timer, getString(R.string.lock_test), getString(R.string.lock_test_sub),
@@ -149,6 +151,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= 34) {
             addPerm(R.drawable.ic_lock, R.string.perm_fsi, R.string.perm_fsi_sub, Perms.hasFsi(this), v -> Perms.askFsi(this));
         }
+        addPerm(R.drawable.ic_star, R.string.perm_chan, R.string.perm_chan_sub, Perms.hasLockChannel(this), v -> Perms.askLockChannel(this));
         addPerm(R.drawable.ic_shield, R.string.perm_battery, R.string.perm_battery_sub, Perms.hasBattery(this), v -> Perms.askBattery(this));
         if (Build.VERSION.SDK_INT >= 31) {
             addPerm(R.drawable.ic_music, R.string.perm_bt, R.string.perm_bt_sub, Perms.hasBt(this), v -> Perms.askBt(this));
