@@ -62,8 +62,41 @@ public final class Ui {
         v.setText(t);
         v.setTextSize(sp);
         v.setTextColor(color(c, colorRes));
-        v.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         return v;
+    }
+
+    /** Draws the screen under the system bars and pads the given view by their insets (+ optional extra). */
+    public static void edgeToEdge(android.app.Activity a, View content) {
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(a.getWindow(), false);
+        a.getWindow().setStatusBarColor(0);
+        a.getWindow().setNavigationBarColor(0);
+        if (android.os.Build.VERSION.SDK_INT >= 29) a.getWindow().setNavigationBarContrastEnforced(false);
+        final int l = content.getPaddingLeft(), t = content.getPaddingTop(), r = content.getPaddingRight(), b = content.getPaddingBottom();
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(content, (v, insets) -> {
+            androidx.core.graphics.Insets bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                    | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(l + bars.left, t + bars.top, r + bars.right, b + bars.bottom);
+            return insets;
+        });
+        androidx.core.view.ViewCompat.requestApplyInsets(content);
+    }
+
+    public static android.widget.Space space(Context c, float weight) {
+        android.widget.Space s = new android.widget.Space(c);
+        s.setLayoutParams(new LinearLayout.LayoutParams(1, 0, weight));
+        return s;
+    }
+
+    /** Two or more pills sharing the row width equally. */
+    public static LinearLayout pillRow(Context c, View... pills) {
+        LinearLayout row = new LinearLayout(c);
+        row.setPadding(dp(c, 20), dp(c, 6), dp(c, 20), dp(c, 10));
+        for (int i = 0; i < pills.length; i++) {
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            if (i > 0) p.setMarginStart(dp(c, 10));
+            row.addView(pills[i], p);
+        }
+        return row;
     }
 
     public static LinearLayout.LayoutParams lp(int w, int h) {

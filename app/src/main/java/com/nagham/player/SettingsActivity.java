@@ -33,6 +33,12 @@ public class SettingsActivity extends AppCompatActivity {
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
 
+        // ---- general
+        col.addView(Ui.section(this, R.string.set_general));
+        LinearLayout gen = group(col);
+        gen.addView(Ui.settingRow(this, R.drawable.ic_language, getString(R.string.language), langLabel(), null, false, v -> pickLang()));
+        Ui.group(this, gen);
+
         // ---- formats
         col.addView(Ui.section(this, R.string.set_formats));
         LinearLayout fm = group(col);
@@ -49,7 +55,8 @@ public class SettingsActivity extends AppCompatActivity {
         LinearLayout lib = group(col);
         lib.addView(Ui.settingRow(this, R.drawable.ic_timer, getString(R.string.set_min_dur), minLabel(), null, false, v -> pickMin()));
         lib.addView(Ui.settingRow(this, R.drawable.ic_refresh, getString(R.string.rescan), getString(R.string.rescan_sub), null, false, v -> {
-            Library.scan(this, () -> Toast.makeText(this, getString(R.string.songs_count, Library.tracks.size()), Toast.LENGTH_SHORT).show());
+            Library.scan(this, () -> Toast.makeText(this,
+                    getResources().getQuantityString(R.plurals.songs_n, Library.tracks.size(), Library.tracks.size()), Toast.LENGTH_SHORT).show());
             dirty = false;
         }));
         Ui.group(this, lib);
@@ -82,6 +89,24 @@ public class SettingsActivity extends AppCompatActivity {
         g.setOrientation(LinearLayout.VERTICAL);
         parent.addView(g, new LinearLayout.LayoutParams(-1, -2));
         return g;
+    }
+
+    private String langLabel() {
+        String v = Lang.saved(this);
+        return "ar".equals(v) ? "العربية" : "en".equals(v) ? "English" : getString(R.string.lang_system);
+    }
+
+    private void pickLang() {
+        final String[] codes = {"", "ar", "en"};
+        final String[] names = {getString(R.string.lang_system), "العربية", "English"};
+        Sheet.show(this, getString(R.string.language), () -> {
+            List<Sheet.Item> l = new ArrayList<>();
+            for (int i = 0; i < codes.length; i++) {
+                final String code = codes[i];
+                l.add(Sheet.item(R.drawable.ic_language, names[i], Lang.saved(this).equals(code), false, () -> Lang.set(this, code)));
+            }
+            return l;
+        });
     }
 
     private String minLabel() {

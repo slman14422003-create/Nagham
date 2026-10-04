@@ -42,12 +42,9 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
         titleHolder = new LinearLayout(this);
         root.addView(titleHolder);
 
-        LinearLayout actions = new LinearLayout(this);
-        actions.setPadding(Ui.dp(this, 20), Ui.dp(this, 6), Ui.dp(this, 20), Ui.dp(this, 10));
-        actions.addView(Ui.pill(this, R.string.play_all, R.drawable.ic_play, true, v -> play(false)));
-        actions.addView(new View(this), Ui.lp(Ui.dp(this, 10), 1));
-        actions.addView(Ui.pill(this, R.string.shuffle_all, R.drawable.ic_shuffle, false, v -> play(true)));
-        root.addView(actions);
+        root.addView(Ui.pillRow(this,
+                Ui.pill(this, R.string.play_all, R.drawable.ic_play, true, v -> play(false)),
+                Ui.pill(this, R.string.shuffle_all, R.drawable.ic_shuffle, false, v -> play(true))));
 
         FrameLayout body = new FrameLayout(this);
         ad = new TrackAdapter(this, this);

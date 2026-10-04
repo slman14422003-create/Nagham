@@ -20,7 +20,10 @@ import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 
-/** Shared now-playing widgets (cover, title, seek bar, transport buttons) used by the player and the lock screen. */
+/**
+ * Shared now-playing widgets (cover, title, seek bar, transport) for the player and the lock screen.
+ * lock = centered text, rounder cover, and only previous / play / next.
+ */
 public final class NowPlaying implements Player.Listener {
     public interface ArtCb {
         void onArt(Uri uri);
@@ -46,24 +49,26 @@ public final class NowPlaying implements Player.Listener {
         }
     };
 
-    public NowPlaying(Context ctx, int artSizeDp) {
+    public NowPlaying(Context ctx, int artSizeDp, boolean lock) {
         c = ctx;
         artPx = Ui.dp(c, artSizeDp);
-        art = Ui.artView(c, artSizeDp, 32);
+        art = Ui.artView(c, artSizeDp, lock ? 36 : 32);
 
         info = new LinearLayout(c);
         info.setOrientation(LinearLayout.VERTICAL);
-        info.setGravity(Gravity.CENTER_HORIZONTAL);
-        title = Ui.text(c, "", 24, R.color.text_primary);
+        title = Ui.text(c, "", lock ? 22 : 26, R.color.text_primary);
         title.setTypeface(Typeface.create("serif", Typeface.BOLD));
-        title.setGravity(Gravity.CENTER);
-        title.setSingleLine(true);
-        title.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE);
-        title.setSelected(true);
-        artist = Ui.text(c, "", 16, R.color.text_secondary);
-        artist.setGravity(Gravity.CENTER);
+        title.setMaxLines(2);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        title.setLineSpacing(0, 1.05f);
+        artist = Ui.text(c, "", 15, R.color.text_secondary);
         artist.setSingleLine(true);
+        artist.setEllipsize(android.text.TextUtils.TruncateAt.END);
         artist.setPadding(0, Ui.dp(c, 4), 0, 0);
+        if (lock) {
+            title.setGravity(Gravity.CENTER);
+            artist.setGravity(Gravity.CENTER);
+        }
         info.addView(title, Ui.lp(-1, -2));
         info.addView(artist, Ui.lp(-1, -2));
 
@@ -74,7 +79,7 @@ public final class NowPlaying implements Player.Listener {
         seek.setProgressDrawable(ContextCompat.getDrawable(c, R.drawable.seek_progress));
         seek.setThumb(ContextCompat.getDrawable(c, R.drawable.seek_thumb));
         seek.setSplitTrack(false);
-        seek.setPadding(Ui.dp(c, 10), 0, Ui.dp(c, 10), 0);
+        seek.setPadding(Ui.dp(c, 8), 0, Ui.dp(c, 8), 0);
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar s, int p, boolean user) {
@@ -94,18 +99,18 @@ public final class NowPlaying implements Player.Listener {
             }
         });
         LinearLayout times = new LinearLayout(c);
-        times.setPadding(Ui.dp(c, 14), 0, Ui.dp(c, 14), 0);
+        times.setPadding(Ui.dp(c, 8), 0, Ui.dp(c, 8), 0);
         cur = Ui.text(c, "0:00", 12, R.color.text_secondary);
         total = Ui.text(c, "0:00", 12, R.color.text_secondary);
         total.setGravity(Gravity.END);
         times.addView(cur, Ui.weight(1));
         times.addView(total, Ui.weight(1));
-        seekBlock.addView(seek, Ui.lp(-1, Ui.dp(c, 32)));
+        seekBlock.addView(seek, Ui.lp(-1, Ui.dp(c, 28)));
         seekBlock.addView(times, Ui.lp(-1, -2));
 
         controls = new LinearLayout(c);
         controls.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        controls.setGravity(Gravity.CENTER);
+        controls.setGravity(Gravity.CENTER_VERTICAL);
         shuffle = Ui.flat(c, R.drawable.ic_shuffle, 48, R.string.shuffle, v -> {
             MediaController m = Pb.get();
             if (m != null) m.setShuffleModeEnabled(!m.getShuffleModeEnabled());
@@ -135,10 +140,10 @@ public final class NowPlaying implements Player.Listener {
             m.setRepeatMode(r == Player.REPEAT_MODE_OFF ? Player.REPEAT_MODE_ALL
                     : r == Player.REPEAT_MODE_ALL ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
         });
-        for (View b : new View[]{shuffle, prev, play, next, repeat}) {
-            LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) b.getLayoutParams();
-            p.setMargins(Ui.dp(c, 4), 0, Ui.dp(c, 4), 0);
-            controls.addView(b);
+        View[] set = lock ? new View[]{prev, play, next} : new View[]{shuffle, prev, play, next, repeat};
+        for (int i = 0; i < set.length; i++) {
+            if (i > 0) controls.addView(Ui.space(c, 1f));
+            controls.addView(set[i]);
         }
         Art.show(art, null, artPx);
     }
@@ -164,8 +169,8 @@ public final class NowPlaying implements Player.Listener {
         if (m == null) return;
         MediaItem it = m.getCurrentMediaItem();
         MediaMetadata md = it != null ? it.mediaMetadata : MediaMetadata.EMPTY;
-        title.setText(md.title != null ? md.title : "");
-        artist.setText(Fmt.artist(c, md.artist == null ? null : md.artist.toString()));
+        title.setText(it == null || md.title == null ? c.getString(R.string.nothing_playing) : md.title);
+        artist.setText(it == null ? "" : Fmt.artist(c, md.artist == null ? null : md.artist.toString()));
         boolean playing = m.getPlayWhenReady() && m.getPlaybackState() != Player.STATE_ENDED;
         play.setImageResource(playing ? R.drawable.ic_pause_fill : R.drawable.ic_play_fill);
         Ui.tint(shuffle, m.getShuffleModeEnabled() ? R.color.accent_text : R.color.text_secondary);

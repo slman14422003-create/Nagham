@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">نغم</string>
+
+    <!-- general -->
+    <string name="back">رجوع</string>
+    <string name="close">إغلاق</string>
+    <string name="cancel">إلغاء</string>
+    <string name="save">حفظ</string>
+    <string name="delete">حذف</string>
+    <string name="rename">إعادة تسمية</string>
+    <string name="more">المزيد</string>
+    <string name="settings">الإعدادات</string>
+    <string name="search">بحث</string>
+    <string name="search_hint">ابحث بالعنوان أو الفنان</string>
+    <string name="unknown_artist">فنان غير معروف</string>
+    <plurals name="songs_n">
+        <item quantity="zero">لا أغاني</item>
+        <item quantity="one">أغنية واحدة</item>
+        <item quantity="two">أغنيتان</item>
+        <item quantity="few">%d أغانٍ</item>
+        <item quantity="many">%d أغنية</item>
+        <item quantity="other">%d أغنية</item>
+    </plurals>
+
+    <!-- home -->
+    <string name="tab_songs">الأغاني</string>
+    <string name="tab_playlists">القوائم</string>
+    <string name="play_all">تشغيل الكل</string>
+    <string name="shuffle_all">عشوائي</string>
+    <string name="scanning">جارٍ فحص المكتبة…</string>
+    <string name="no_songs">لا توجد أغانٍ. تأكد من الصيغ المفعّلة في الإعدادات.</string>
+    <string name="no_access">يحتاج نغم إلى الوصول إلى الموسيقى على جهازك.</string>
+    <string name="allow_access">السماح بالوصول</string>
+    <string name="finish_setup">أكمل الأذونات</string>
+    <string name="finish_setup_sub">لتعمل الإشعارات وشاشة القفل بسلاسة</string>
+    <string name="sort_by">ترتيب حسب</string>
+    <string name="sort_title">العنوان</string>
+    <string name="sort_artist">الفنان</string>
+    <string name="sort_recent">الأحدث إضافة</string>
+    <string name="sort_duration">المدة</string>
+
+    <!-- song menu / playlists -->
+    <string name="play_next">تشغيل بعد الحالية</string>
+    <string name="add_to_queue">إضافة إلى قائمة الانتظار</string>
+    <string name="added_queue">تمت الإضافة</string>
+    <string name="add_to_playlist">إضافة إلى قائمة</string>
+    <string name="favorite">إضافة إلى المفضلة</string>
+    <string name="unfavorite">إزالة من المفضلة</string>
+    <string name="favorites">المفضلة</string>
+    <string name="new_playlist">قائمة جديدة</string>
+    <string name="playlist_name">اسم القائمة</string>
+    <string name="add_songs">إضافة أغانٍ</string>
+    <string name="add_selected">إضافة المحدد</string>
+    <string name="add_n">إضافة (%d)</string>
+    <string name="done_n">تمت إضافة %d</string>
+    <string name="select_all">تحديد الكل</string>
+    <string name="reorder">إعادة الترتيب</string>
+    <string name="empty_playlist">القائمة فارغة — اضغط + لإضافة أغانٍ</string>
+    <string name="confirm_delete_playlist">حذف القائمة «%s»؟</string>
+
+    <!-- player -->
+    <string name="now_playing">قيد التشغيل</string>
+    <string name="nothing_playing">لا شيء قيد التشغيل</string>
+    <string name="play_pause">تشغيل / إيقاف</string>
+    <string name="previous">السابق</string>
+    <string name="next">التالي</string>
+    <string name="shuffle">عشوائي</string>
+    <string name="repeat">تكرار</string>
+    <string name="sleep_timer">مؤقت النوم</string>
+    <string name="sleep_min">%d دقيقة</string>
+    <string name="sleep_set">سيتوقف التشغيل بعد %d دقيقة</string>
+    <string name="sleep_off">إلغاء المؤقت</string>
+    <string name="lock_hint">اسحب للأعلى لفتح الجهاز</string>
+    <string name="lock_preview">معاينة شاشة القفل</string>
+    <string name="lock_notif_text">اضغط لعرض مشغّل شاشة القفل</string>
+    <string name="ch_lock">مشغّل شاشة القفل</string>
+    <string name="ch_lock_sub">يعرض مشغّل الموسيقى فوق شاشة القفل أثناء التشغيل</string>
+
+    <!-- settings -->
+    <string name="set_general">عام</string>
+    <string name="language">اللغة</string>
+    <string name="lang_system">لغة النظام</string>
+    <string name="set_formats">صيغ الصوت</string>
+    <string name="set_min_dur">تجاهل الملفات الأقصر من</string>
+    <string name="min_none">لا تجاهل</string>
+    <string name="min_sec">%d ثانية</string>
+    <string name="rescan">إعادة فحص المكتبة</string>
+    <string name="rescan_sub">يحدّث القائمة بعد إضافة أو حذف ملفات</string>
+    <string name="set_playback">التشغيل</string>
+    <string name="skip_silence">تخطي الصمت</string>
+    <string name="skip_silence_sub">يتجاوز المقاطع الصامتة داخل المقطع الصوتي</string>
+    <string name="set_lock">شاشة القفل</string>
+    <string name="lock_auto">مشغّل شاشة القفل</string>
+    <string name="lock_auto_sub">يظهر فوق شاشة القفل عند تشغيل الشاشة أثناء الموسيقى</string>
+    <string name="lock_blur">خلفية من الغلاف</string>
+    <string name="lock_blur_sub">خلفية ناعمة وملوّنة مأخوذة من غلاف الأغنية</string>
+    <string name="lock_preview_sub">شاهد شكل شاشة القفل الآن</string>
+    <string name="set_perms">الأذونات</string>
+    <string name="perm_on">مفعّل</string>
+    <string name="perm_enable">تفعيل</string>
+    <string name="perm_audio">الوصول إلى الموسيقى</string>
+    <string name="perm_audio_sub">لقراءة ملفاتك الصوتية</string>
+    <string name="perm_notif">الإشعارات</string>
+    <string name="perm_notif_sub">أزرار التحكم على شريط الإشعارات وشاشة القفل</string>
+    <string name="perm_fsi">العرض فوق شاشة القفل</string>
+    <string name="perm_fsi_sub">يسمح لمشغّل شاشة القفل بالظهور فوق القفل</string>
+    <string name="perm_battery">تجاهل توفير البطارية</string>
+    <string name="perm_battery_sub">حتى لا يتوقف التشغيل في الخلفية</string>
+    <string name="perm_bt">سماعات البلوتوث</string>
+    <string name="perm_bt_sub">أزرار السماعة والسيارة وعرض اسم الأغنية</string>
+
+    <string-array name="fmt_subs">
+        <item>.mp3</item>
+        <item>.flac — جودة دون فقدان</item>
+        <item>.wav</item>
+        <item>.m4a .m4b .mp4 (صوت)</item>
+        <item>.aac .adts</item>
+        <item>.ogg .oga</item>
+        <item>.opus</item>
+        <item>.amr .awb</item>
+        <item>.mka — Matroska</item>
+    </string-array>
+</resources>

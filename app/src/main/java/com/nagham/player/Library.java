@@ -50,12 +50,12 @@ public final class Library {
                         long dur = q.getLong(4);
                         if (!ok.contains(ext) || dur <= 0 || dur < minMs) continue;
                         long id = q.getLong(0);
-                        String title = q.getString(1);
-                        if (title == null || title.isEmpty()) title = dot > 0 ? name.substring(0, dot) : name;
+                        String title = Fmt.title(q.getString(1), dot > 0 ? name.substring(0, dot) : name);
                         String artist = q.getString(2);
                         if (artist == null || "<unknown>".equals(artist)) artist = "";
+                        else artist = Fmt.fix(artist);
                         out.add(new Track(id, ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id),
-                                title, artist, q.getString(3), ext, dur, q.getLong(5)));
+                                title, artist, q.getString(3) == null ? null : Fmt.fix(q.getString(3)), ext, dur, q.getLong(5)));
                     }
                 } catch (Exception ignored) {
                 }

@@ -83,7 +83,7 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
         addView(row, new LinearLayout.LayoutParams(-1, -2));
 
         bar = new ProgressBar(c, null, android.R.attr.progressBarStyleHorizontal);
-        bar.setProgressDrawable(ContextCompat.getDrawable(c, R.drawable.seek_progress));
+        bar.setProgressDrawable(ContextCompat.getDrawable(c, R.drawable.mini_progress));
         bar.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, Ui.dp(c, 3));
         bp.setMargins(Ui.dp(c, 18), 0, Ui.dp(c, 18), Ui.dp(c, 8));
