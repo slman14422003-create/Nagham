@@ -41,13 +41,26 @@ public final class NowPlaying implements Player.Listener {
     public ArtCb artCb;
     public Runnable onRefresh;
     private final Handler h = new Handler(Looper.getMainLooper());
+    private boolean started, ticking;
+    private Boolean lastPlaying;
+    private long lastDur = -1, lastSec = -1;
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
+            ticking = false;
             progress();
-            h.postDelayed(this, 500);
+            schedule();
         }
     };
+
+    /** The seek bar only needs frames while music is actually playing. */
+    private void schedule() {
+        MediaController m = Pb.get();
+        if (started && !ticking && m != null && m.isPlaying()) {
+            ticking = true;
+            h.postDelayed(tick, 250);
+        }
+    }
 
     public NowPlaying(Context ctx, int artSizeDp, boolean lock) {
         c = ctx;
@@ -149,12 +162,14 @@ public final class NowPlaying implements Player.Listener {
     }
 
     public void start() {
+        started = true;
         Pb.add(this);
         refresh();
-        h.post(tick);
     }
 
     public void stop() {
+        started = false;
+        ticking = false;
         Pb.remove(this);
         h.removeCallbacks(tick);
     }
@@ -173,6 +188,8 @@ public final class NowPlaying implements Player.Listener {
         artist.setText(it == null ? "" : Fmt.artist(c, md.artist == null ? null : md.artist.toString()));
         boolean playing = m.getPlayWhenReady() && m.getPlaybackState() != Player.STATE_ENDED;
         play.setImageResource(playing ? R.drawable.ic_pause_fill : R.drawable.ic_play_fill);
+        if (lastPlaying != null && lastPlaying != playing) Ui.pop(play);
+        lastPlaying = playing;
         Ui.tint(shuffle, m.getShuffleModeEnabled() ? R.color.accent_text : R.color.text_secondary);
         int rm = m.getRepeatMode();
         repeat.setImageResource(rm == Player.REPEAT_MODE_ONE ? R.drawable.ic_repeat_one : R.drawable.ic_repeat);
@@ -180,11 +197,18 @@ public final class NowPlaying implements Player.Listener {
         Uri au = md.artworkUri;
         String key = au == null ? "" : au.toString();
         if (!key.equals(lastArt)) {
+            boolean first = "\u0000".equals(lastArt);
             lastArt = key;
             Art.load(c, au, art, artPx);
+            if (!first) {
+                art.setAlpha(0.35f);
+                art.animate().alpha(1f).setDuration(350).start();
+                Ui.pop(art);
+            }
             if (artCb != null) artCb.onArt(au);
         }
         progress();
+        schedule();
         if (onRefresh != null) onRefresh.run();
     }
 
@@ -193,12 +217,19 @@ public final class NowPlaying implements Player.Listener {
         if (m == null) return;
         long d = m.getDuration();
         if (d == C.TIME_UNSET || d < 0) d = 0;
-        seek.setMax((int) d);
-        total.setText(Fmt.time(d));
+        if (d != lastDur) {
+            lastDur = d;
+            seek.setMax((int) d);
+            total.setText(Fmt.time(d));
+        }
         if (!drag) {
             long p = m.getCurrentPosition();
-            seek.setProgress((int) p);
-            cur.setText(Fmt.time(p));
+            seek.setProgress((int) p, true);
+            long sec = p / 1000;
+            if (sec != lastSec) {
+                lastSec = sec;
+                cur.setText(Fmt.time(p));
+            }
         }
     }
 }

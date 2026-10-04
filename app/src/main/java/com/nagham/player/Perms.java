@@ -114,6 +114,10 @@ public final class Perms {
         }
     }
 
+    public static void openApp(Activity a) {
+        start(a, appSettings(a));
+    }
+
     private static Intent appSettings(Activity a) {
         return new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + a.getPackageName()));
     }

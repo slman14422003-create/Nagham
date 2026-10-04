@@ -50,14 +50,16 @@
         <activity android:name=".PickSongsActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".SettingsActivity" android:exported="false" />
 
-        <!-- Lock-screen player: drawn above the keyguard, never kept in recents -->
+        <!-- Lock-screen player: above the keyguard, own task, portrait on phones, never in recents -->
         <activity
             android:name=".LockActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
+            android:screenOrientation="portrait"
             android:showWhenLocked="true"
             android:taskAffinity=""
+            android:turnScreenOn="true"
             android:theme="@style/AppTheme" />
 
         <!-- keeps the in-app language choice across restarts on Android 12 and older -->

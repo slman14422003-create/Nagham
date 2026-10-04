@@ -44,21 +44,44 @@ public final class Sheet {
         LinearLayout root = new LinearLayout(c);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundResource(R.drawable.bg_sheet);
-        root.setPadding(0, Ui.dp(c, 8), 0, Ui.dp(c, 28));
+        root.setPadding(0, Ui.dp(c, 4), 0, Ui.dp(c, 28));
 
+        LinearLayout head = new LinearLayout(c);
+        head.setOrientation(LinearLayout.VERTICAL);
         View grab = new View(c);
         grab.setBackgroundResource(R.drawable.bg_grabber);
         LinearLayout.LayoutParams gp = Ui.lp(Ui.dp(c, 40), Ui.dp(c, 4));
         gp.gravity = Gravity.CENTER_HORIZONTAL;
+        gp.topMargin = Ui.dp(c, 4);
         gp.bottomMargin = Ui.dp(c, 8);
-        root.addView(grab, gp);
+        head.addView(grab, gp);
 
         TextView t = Ui.text(c, title, 17, R.color.text_primary);
         t.setTypeface(Typeface.create("serif", Typeface.BOLD));
         t.setSingleLine(true);
         t.setEllipsize(android.text.TextUtils.TruncateAt.END);
         t.setPaddingRelative(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 10));
-        root.addView(t);
+        head.addView(t);
+        root.addView(head);
+        final float[] y0 = {0};
+        head.setOnTouchListener((v, e) -> {
+            switch (e.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    y0[0] = e.getRawY();
+                    return true;
+                case android.view.MotionEvent.ACTION_MOVE:
+                    root.setTranslationY(Math.max(0f, e.getRawY() - y0[0]));
+                    return true;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    if (root.getTranslationY() > Ui.dp(c, 110)) d.dismiss();
+                    else root.animate().translationY(0f).setDuration(220)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+                    return true;
+                default:
+                    return false;
+            }
+        });
 
         final int maxH = (int) (c.getResources().getDisplayMetrics().heightPixels * 0.62f);
         ScrollView sv = new ScrollView(c) {

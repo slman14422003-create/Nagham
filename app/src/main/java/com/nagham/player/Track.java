@@ -6,7 +6,7 @@ import android.net.Uri;
 public final class Track {
     public final long id;
     public final Uri uri;
-    public final String title, artist, album, ext;
+    public final String title, artist, album, ext, key;
     public final long duration, added;
 
     public Track(long id, Uri uri, String title, String artist, String album, String ext, long duration, long added) {
@@ -18,5 +18,6 @@ public final class Track {
         this.ext = ext;
         this.duration = duration;
         this.added = added;
+        this.key = (title + " " + artist + " " + album).toLowerCase();
     }
 }

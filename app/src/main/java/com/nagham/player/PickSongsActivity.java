@@ -44,7 +44,7 @@ public class PickSongsActivity extends AppCompatActivity implements TrackAdapter
         });
         root.addView(Ui.topBar(this, getString(R.string.add_songs), R.drawable.ic_back, all));
 
-        android.widget.EditText search = Ui.edit(this, getString(R.string.search_hint), null);
+        android.widget.EditText search = Ui.searchEdit(this, getString(R.string.search_hint));
         search.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int c, int d) { }
             @Override public void onTextChanged(CharSequence s, int a, int c, int d) { }

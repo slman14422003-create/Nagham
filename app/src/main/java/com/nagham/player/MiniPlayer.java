@@ -27,18 +27,28 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
     private final ProgressBar bar;
     private String lastArt = "\u0000";
     private final Handler h = new Handler(Looper.getMainLooper());
+    private boolean started, ticking;
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
+            ticking = false;
             MediaController m = Pb.get();
             if (m != null) {
                 long d = m.getDuration();
                 bar.setMax(d == C.TIME_UNSET || d < 0 ? 0 : (int) d);
-                bar.setProgress((int) m.getCurrentPosition());
+                bar.setProgress((int) m.getCurrentPosition(), true);
             }
-            h.postDelayed(this, 700);
+            schedule();
         }
     };
+
+    private void schedule() {
+        MediaController m = Pb.get();
+        if (started && !ticking && m != null && m.isPlaying() && getVisibility() == VISIBLE) {
+            ticking = true;
+            h.postDelayed(tick, 400);
+        }
+    }
 
     public MiniPlayer(final Context c) {
         super(c);
@@ -89,16 +99,57 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
         bp.setMargins(Ui.dp(c, 18), 0, Ui.dp(c, 18), Ui.dp(c, 8));
         addView(bar, bp);
 
-        setOnClickListener(v -> c.startActivity(new Intent(c, PlayerActivity.class)));
+        setClickable(true);
+        setContentDescription(c.getString(R.string.now_playing));
+        final android.view.GestureDetector gd = new android.view.GestureDetector(c, new android.view.GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDown(android.view.MotionEvent e) {
+                return true;
+            }
+
+            @Override
+            public boolean onSingleTapUp(android.view.MotionEvent e) {
+                c.startActivity(new Intent(c, PlayerActivity.class));
+                return true;
+            }
+
+            @Override
+            public boolean onFling(android.view.MotionEvent a, android.view.MotionEvent b, float vx, float vy) {
+                MediaController m = Pb.get();
+                if (m == null) return false;
+                if (Math.abs(vx) > Math.abs(vy) && Math.abs(vx) > 900) {
+                    boolean ltr = getLayoutDirection() == View.LAYOUT_DIRECTION_LTR;
+                    if ((vx < 0) == ltr) m.seekToNext();
+                    else m.seekToPrevious();
+                    setTranslationX(Math.signum(vx) * Ui.dp(c, 20));
+                    animate().translationX(0f).setDuration(300)
+                            .setInterpolator(new android.view.animation.OvershootInterpolator(2f)).start();
+                    return true;
+                }
+                if (vy < -900) {
+                    c.startActivity(new Intent(c, PlayerActivity.class));
+                    return true;
+                }
+                return false;
+            }
+        });
+        setOnTouchListener((v, e) -> {
+            int a = e.getActionMasked();
+            if (a == android.view.MotionEvent.ACTION_DOWN) setPressed(true);
+            else if (a == android.view.MotionEvent.ACTION_UP || a == android.view.MotionEvent.ACTION_CANCEL) setPressed(false);
+            return gd.onTouchEvent(e);
+        });
     }
 
     public void start() {
+        started = true;
         Pb.add(this);
         refresh();
-        h.post(tick);
     }
 
     public void stop() {
+        started = false;
+        ticking = false;
         Pb.remove(this);
         h.removeCallbacks(tick);
     }
@@ -114,7 +165,14 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
             setVisibility(GONE);
             return;
         }
-        setVisibility(VISIBLE);
+        if (getVisibility() != VISIBLE) {
+            setVisibility(VISIBLE);
+            setAlpha(0f);
+            setTranslationY(Ui.dp(getContext(), 24));
+            animate().alpha(1f).translationY(0f).setDuration(320)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+        }
+        schedule();
         MediaItem it = m.getCurrentMediaItem();
         if (it == null) return;
         title.setText(it.mediaMetadata.title);

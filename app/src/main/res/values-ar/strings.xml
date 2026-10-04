@@ -110,6 +110,22 @@
     <string name="perm_bt">سماعات البلوتوث</string>
     <string name="perm_bt_sub">أزرار السماعة والسيارة وعرض اسم الأغنية</string>
 
+    <string name="perm_open">فتح</string>
+    <string name="perm_xiaomi">شاومي: العرض على شاشة القفل</string>
+    <string name="perm_xiaomi_sub">فعّل «عرض على شاشة القفل» و«عرض النوافذ المنبثقة أثناء التشغيل في الخلفية»</string>
+    <string name="perm_autostart">شاومي: التشغيل التلقائي</string>
+    <string name="perm_autostart_sub">اسمح لنغم بالتشغيل التلقائي لتبقى أزرار التحكم تعمل</string>
+    <string name="perm_battery_oem">البطارية: بلا قيود</string>
+    <string name="perm_battery_oem_sub">اجعل نغم «بلا قيود» (شاومي) أو «غير مقيّد» / لا ينام أبدًا (سامسونج)</string>
+    <string name="lock_test">اختبار مشغّل شاشة القفل</string>
+    <string name="lock_test_sub">اضغط ثم اقفل هاتفك — سيظهر المشغّل خلال 6 ثوانٍ</string>
+    <string name="lock_test_toast">اقفل هاتفك الآن…</string>
+    <string name="lock_test_missing">فعّل الإشعارات و«العرض فوق شاشة القفل» أولًا</string>
+
+    <string name="state_off">متوقف</string>
+    <string name="up_next">التالي في القائمة</string>
+    <string name="fmt_min_one">أبقِ صيغة واحدة على الأقل مفعّلة</string>
+
     <string-array name="fmt_subs">
         <item>.mp3</item>
         <item>.flac — جودة دون فقدان</item>

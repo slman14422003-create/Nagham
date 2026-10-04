@@ -106,6 +106,22 @@
     <string name="perm_bt">Bluetooth headsets</string>
     <string name="perm_bt_sub">Headset and car buttons, and the song name display</string>
 
+    <string name="perm_open">Open</string>
+    <string name="perm_xiaomi">Xiaomi: show on lock screen</string>
+    <string name="perm_xiaomi_sub">Turn on “Show on lock screen” and “Display pop-up windows while running in the background”</string>
+    <string name="perm_autostart">Xiaomi: autostart</string>
+    <string name="perm_autostart_sub">Allow Nagham to start itself so playback controls survive</string>
+    <string name="perm_battery_oem">Battery: no restrictions</string>
+    <string name="perm_battery_oem_sub">Set Nagham to “No restrictions” (Xiaomi) or “Unrestricted” / never sleeping (Samsung)</string>
+    <string name="lock_test">Test the lock-screen player</string>
+    <string name="lock_test_sub">Tap, then lock your phone — the player appears in 6 seconds</string>
+    <string name="lock_test_toast">Lock your phone now…</string>
+    <string name="lock_test_missing">Enable notifications and “Show over lock screen” first</string>
+
+    <string name="state_off">Off</string>
+    <string name="up_next">Up next</string>
+    <string name="fmt_min_one">Keep at least one format on</string>
+
     <string-array name="fmt_subs">
         <item>.mp3</item>
         <item>.flac — lossless</item>

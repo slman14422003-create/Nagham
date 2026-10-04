@@ -44,19 +44,23 @@ public class SettingsActivity extends AppCompatActivity {
         LinearLayout fm = group(col);
         String[] names = getResources().getStringArray(R.array.fmt_names);
         String[] subs = getResources().getStringArray(R.array.fmt_subs);
-        for (int i = 0; i < Store.FORMATS.length; i++) {
-            final String key = Store.FORMATS[i];
-            fm.addView(Ui.toggleRow(this, names[i], subs[i], Store.formatOn(this, key), (v, on) -> {
-                Store.setFormatOn(this, key, on);
-                dirty = true;
-            }));
-        }
-        Ui.group(this, fm);
+        final boolean[] fmtOn = new boolean[Store.FORMATS.length];
+        for (int i = 0; i < fmtOn.length; i++) fmtOn[i] = Store.formatOn(this, Store.FORMATS[i]);
+        fm.addView(Ui.chipGrid(this, names, subs, fmtOn, (i, want, count) -> {
+            if (!want && count <= 1) {
+                Ui.toast(this, R.string.fmt_min_one);
+                return false;
+            }
+            Store.setFormatOn(this, Store.FORMATS[i], want);
+            dirty = true;
+            return true;
+        }));
+        col.addView(new View(this), new LinearLayout.LayoutParams(1, Ui.dp(this, 10)));
         LinearLayout lib = group(col);
         lib.addView(Ui.settingRow(this, R.drawable.ic_timer, getString(R.string.set_min_dur), minLabel(), null, false, v -> pickMin()));
         lib.addView(Ui.settingRow(this, R.drawable.ic_refresh, getString(R.string.rescan), getString(R.string.rescan_sub), null, false, v -> {
-            Library.scan(this, () -> Toast.makeText(this,
-                    getResources().getQuantityString(R.plurals.songs_n, Library.tracks.size(), Library.tracks.size()), Toast.LENGTH_SHORT).show());
+            Library.scan(this, () -> Ui.toast(this,
+                    getResources().getQuantityString(R.plurals.songs_n, Library.tracks.size(), Library.tracks.size())));
             dirty = false;
         }));
         Ui.group(this, lib);
@@ -75,6 +79,15 @@ public class SettingsActivity extends AppCompatActivity {
                 Store.flag(this, "lock_auto", true), (v, on) -> Store.setFlag(this, "lock_auto", on)));
         lk.addView(Ui.toggleRow(this, getString(R.string.lock_blur), getString(R.string.lock_blur_sub),
                 Store.flag(this, "lock_blur", true), (v, on) -> Store.setFlag(this, "lock_blur", on)));
+        lk.addView(Ui.settingRow(this, R.drawable.ic_timer, getString(R.string.lock_test), getString(R.string.lock_test_sub),
+                null, false, v -> {
+                    if (LockLauncher.ready(this)) {
+                        LockLauncher.testIn(this, 6);
+                        Ui.toast(this, R.string.lock_test_toast);
+                    } else {
+                        Ui.toast(this, R.string.lock_test_missing);
+                    }
+                }));
         lk.addView(Ui.settingRow(this, R.drawable.ic_lock, getString(R.string.lock_preview), getString(R.string.lock_preview_sub),
                 null, false, v -> Menus.openLock(this)));
         Ui.group(this, lk);
@@ -140,7 +153,19 @@ public class SettingsActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= 31) {
             addPerm(R.drawable.ic_music, R.string.perm_bt, R.string.perm_bt_sub, Perms.hasBt(this), v -> Perms.askBt(this));
         }
+        // vendor switches that Android cannot report: shown as "Open" so the user can check them once
+        if (Oem.xiaomi()) {
+            addOem(R.drawable.ic_lock, R.string.perm_xiaomi, R.string.perm_xiaomi_sub, v -> Oem.xiaomiPermissions(this));
+            addOem(R.drawable.ic_refresh, R.string.perm_autostart, R.string.perm_autostart_sub, v -> Oem.xiaomiAutostart(this));
+        }
+        if (Oem.xiaomi() || Oem.samsung()) {
+            addOem(R.drawable.ic_shield, R.string.perm_battery_oem, R.string.perm_battery_oem_sub, v -> Oem.battery(this));
+        }
         Ui.group(this, perms);
+    }
+
+    private void addOem(int icon, int title, int sub, View.OnClickListener click) {
+        perms.addView(Ui.settingRow(this, icon, getString(title), getString(sub), getString(R.string.perm_open), false, click));
     }
 
     private void addPerm(int icon, int title, int sub, boolean ok, View.OnClickListener click) {

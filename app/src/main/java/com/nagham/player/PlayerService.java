@@ -11,8 +11,6 @@ import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.OptIn;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
@@ -36,14 +34,25 @@ public class PlayerService extends MediaSessionService {
     private ExoPlayer player;
     private final Handler h = new Handler(Looper.getMainLooper());
 
-    private final BroadcastReceiver screenOn = new BroadcastReceiver() {
+    private final Runnable showLockRunnable = new Runnable() {
+        @Override
+        public void run() {
+            KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            if (player != null && player.isPlaying() && km != null && km.isKeyguardLocked()) LockLauncher.show(PlayerService.this);
+        }
+    };
+
+    private final BroadcastReceiver screen = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent i) {
-            if (!Store.flag(c, "lock_auto", true)) return;
-            h.postDelayed(() -> {
-                KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-                if (player != null && player.isPlaying() && km != null && km.isKeyguardLocked()) showLock();
-            }, 350);
+            String a = i.getAction();
+            h.removeCallbacks(showLockRunnable);
+            if (Intent.ACTION_SCREEN_ON.equals(a)) {
+                // the keyguard needs a moment to settle (Samsung / Xiaomi are slower than Pixel)
+                if (Store.flag(c, "lock_auto", true)) h.postDelayed(showLockRunnable, 600);
+            } else {
+                LockLauncher.clear(c);
+            }
         }
     };
 
@@ -67,7 +76,10 @@ public class PlayerService extends MediaSessionService {
         DefaultMediaNotificationProvider np = new DefaultMediaNotificationProvider.Builder(this).build();
         np.setSmallIcon(R.drawable.ic_notif);
         setMediaNotificationProvider(np);
-        ContextCompat.registerReceiver(this, screenOn, new IntentFilter(Intent.ACTION_SCREEN_ON), ContextCompat.RECEIVER_NOT_EXPORTED);
+        IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        f.addAction(Intent.ACTION_SCREEN_OFF);
+        f.addAction(Intent.ACTION_USER_PRESENT);
+        ContextCompat.registerReceiver(this, screen, f, ContextCompat.RECEIVER_NOT_EXPORTED);
         Store.prefs(this).registerOnSharedPreferenceChangeListener(prefs);
     }
 
@@ -85,7 +97,7 @@ public class PlayerService extends MediaSessionService {
     @Override
     public void onDestroy() {
         try {
-            unregisterReceiver(screenOn);
+            unregisterReceiver(screen);
         } catch (Exception ignored) {
         }
         Store.prefs(this).unregisterOnSharedPreferenceChangeListener(prefs);
@@ -95,33 +107,5 @@ public class PlayerService extends MediaSessionService {
         session = null;
         player = null;
         super.onDestroy();
-    }
-
-    /** Full-screen-intent notification: the only way to start an activity over the keyguard from the background. */
-    private void showLock() {
-        if (!Perms.hasNotif(this) || !Perms.hasFsi(this)) return;
-        PendingIntent pi = PendingIntent.getActivity(this, 11,
-                new Intent(this, LockActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        android.app.Notification n = new NotificationCompat.Builder(this, App.CH_LOCK)
-                .setSmallIcon(R.drawable.ic_notif)
-                .setContentTitle(getString(R.string.app_name))
-                .setContentText(getString(R.string.lock_notif_text))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setFullScreenIntent(pi, true)
-                .setContentIntent(pi)
-                .setAutoCancel(true)
-                .setSilent(true)
-                .setTimeoutAfter(8000)
-                .build();
-        try {
-            NotificationManagerCompat.from(this).notify(LOCK_ID, n);
-        } catch (SecurityException ignored) {
-        }
-    }
-
-    public static void clearLock(Context c) {
-        NotificationManagerCompat.from(c).cancel(LOCK_ID);
     }
 }

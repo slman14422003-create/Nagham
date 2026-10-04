@@ -32,7 +32,7 @@ public final class Art {
     public static final ExecutorService EX = Executors.newFixedThreadPool(3);
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final Set<String> MISSING = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-    private static final LruCache<String, Bitmap> CACHE = new LruCache<String, Bitmap>(20 * 1024 * 1024) {
+    private static final LruCache<String, Bitmap> CACHE = new LruCache<String, Bitmap>((int) Math.min(48L * 1024 * 1024, Runtime.getRuntime().maxMemory() / 8)) {
         @Override
         protected int sizeOf(String k, Bitmap b) {
             return b.getByteCount();
@@ -94,21 +94,42 @@ public final class Art {
     /** Loads art into an ImageView, guarding against recycled rows. */
     public static void load(Context c, final Uri uri, final ImageView iv, final int px) {
         final String key = String.valueOf(uri);
+        if (key.equals(iv.getTag(R.id.tag_art)) && iv.getTag(R.id.tag_art_ok) != null) return;
         iv.setTag(R.id.tag_art, key);
+        iv.setTag(R.id.tag_art_ok, null);
         show(iv, null, px);
         if (uri == null) return;
         fetch(c, uri, px, b -> {
-            if (b != null && key.equals(iv.getTag(R.id.tag_art))) show(iv, b, px);
+            if (b != null && key.equals(iv.getTag(R.id.tag_art))) {
+                show(iv, b, px);
+                iv.setTag(R.id.tag_art_ok, Boolean.TRUE);
+            }
         });
+    }
+
+    private static final int[][] GRAD = {
+            {0xFF4A3590, 0xFF16112E}, {0xFF1F5E85, 0xFF0B1C2C}, {0xFF8A3550, 0xFF2B1019}, {0xFF2F7A57, 0xFF0F2B1F},
+            {0xFF8A702F, 0xFF2B2210}, {0xFF2F4E8A, 0xFF0F172B}, {0xFF6E358A, 0xFF1F102B}, {0xFF2F8A82, 0xFF0F2B29}};
+
+    /** Every song without cover gets its own deterministic gradient, so a list of "no cover" rows still looks designed. */
+    private static void tintBg(ImageView iv) {
+        android.graphics.drawable.Drawable d = iv.getBackground();
+        if (!(d instanceof android.graphics.drawable.GradientDrawable)) return;
+        Object k = iv.getTag(R.id.tag_art);
+        int[] g = GRAD[((k == null ? 0 : k.hashCode()) & 0x7fffffff) % GRAD.length];
+        android.graphics.drawable.GradientDrawable gd = (android.graphics.drawable.GradientDrawable) d.mutate();
+        gd.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
+        gd.setColors(g);
     }
 
     public static void show(ImageView iv, Bitmap b, int px) {
         if (b == null) {
+            tintBg(iv);
             iv.setImageResource(R.drawable.ic_music);
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
             int p = px / 4;
             iv.setPadding(p, p, p, p);
-            Ui.tint(iv, R.color.text_hint);
+            androidx.core.widget.ImageViewCompat.setImageTintList(iv, android.content.res.ColorStateList.valueOf(0x99FFFFFF));
         } else {
             ImageViewCompat.setImageTintList(iv, null);
             iv.setPadding(0, 0, 0, 0);

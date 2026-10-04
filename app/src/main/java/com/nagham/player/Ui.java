@@ -31,6 +31,18 @@ public final class Ui {
     private Ui() {
     }
 
+    /** Light tick on the key actions, like the system does. */
+    public static void tap(View v) {
+        v.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+    }
+
+    public static View.OnClickListener haptic(final View.OnClickListener l) {
+        return v -> {
+            tap(v);
+            l.onClick(v);
+        };
+    }
+
     public static int dp(Context c, int v) {
         return (int) (v * c.getResources().getDisplayMetrics().density + 0.5f);
     }
@@ -81,6 +93,36 @@ public final class Ui {
         androidx.core.view.ViewCompat.requestApplyInsets(content);
     }
 
+    /** Fade + slide up, used to stagger screen content in. */
+    public static void enter(View v, long delay) {
+        v.setAlpha(0f);
+        v.setTranslationY(dp(v.getContext(), 22));
+        v.animate().alpha(1f).translationY(0f).setStartDelay(delay).setDuration(420)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+    }
+
+    /** Small springy pop (play/pause, heart, new cover). */
+    public static void pop(View v) {
+        v.setScaleX(0.82f);
+        v.setScaleY(0.82f);
+        v.animate().scaleX(1f).scaleY(1f).setDuration(280)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(2.4f)).start();
+    }
+
+    /** Custom open/close transitions that also work with predictive back on Android 14+. */
+    public static void transitions(android.app.Activity a, int openIn, int openOut, int closeIn, int closeOut) {
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            a.overrideActivityTransition(android.app.Activity.OVERRIDE_TRANSITION_OPEN, openIn, openOut);
+            a.overrideActivityTransition(android.app.Activity.OVERRIDE_TRANSITION_CLOSE, closeIn, closeOut);
+        } else {
+            a.overridePendingTransition(openIn, openOut);
+        }
+    }
+
+    public static void legacyClose(android.app.Activity a, int closeIn, int closeOut) {
+        if (android.os.Build.VERSION.SDK_INT < 34) a.overridePendingTransition(closeIn, closeOut);
+    }
+
     public static android.widget.Space space(Context c, float weight) {
         android.widget.Space s = new android.widget.Space(c);
         s.setLayoutParams(new LinearLayout.LayoutParams(1, 0, weight));
@@ -114,9 +156,9 @@ public final class Ui {
         b.setBackgroundResource(R.drawable.bg_icon_btn);
         b.setScaleType(ImageView.ScaleType.CENTER);
         tint(b, R.color.text_primary);
-        b.setLayoutParams(lp(dp(c, 44), dp(c, 44)));
+        b.setLayoutParams(lp(dp(c, 48), dp(c, 48)));
         if (desc != 0) b.setContentDescription(c.getString(desc));
-        if (l != null) b.setOnClickListener(l);
+        if (l != null) b.setOnClickListener(haptic(l));
         press(c, b);
         return b;
     }
@@ -132,7 +174,7 @@ public final class Ui {
         tint(b, R.color.text_primary);
         b.setLayoutParams(lp(dp(c, sizeDp), dp(c, sizeDp)));
         if (desc != 0) b.setContentDescription(c.getString(desc));
-        if (l != null) b.setOnClickListener(l);
+        if (l != null) b.setOnClickListener(haptic(l));
         press(c, b);
         return b;
     }
@@ -148,7 +190,7 @@ public final class Ui {
         tint(b, R.color.on_accent);
         b.setLayoutParams(lp(dp(c, 72), dp(c, 72)));
         b.setContentDescription(c.getString(R.string.play_pause));
-        b.setOnClickListener(l);
+        b.setOnClickListener(haptic(l));
         press(c, b);
         return b;
     }
@@ -182,7 +224,7 @@ public final class Ui {
             b.setCompoundDrawablesRelativeWithIntrinsicBounds(d, null, null, null);
             b.setCompoundDrawablePadding(dp(c, 8));
         }
-        b.setOnClickListener(l);
+        b.setOnClickListener(haptic(l));
         press(c, b);
         return b;
     }
@@ -251,7 +293,7 @@ public final class Ui {
         bar.addView(t, lp);
         if (actions.length == 0) {
             View sp = new View(a);
-            bar.addView(sp, lp(dp(a, 44), dp(a, 44)));
+            bar.addView(sp, lp(dp(a, 48), dp(a, 48)));
         }
         for (ImageButton b : actions) {
             LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) b.getLayoutParams();
@@ -365,9 +407,181 @@ public final class Ui {
         sw.setFocusable(false);
         card.addView(sw);
         w.setOnClickListener(v -> {
+            tap(v);
             sw.toggle();
             l.onCheckedChanged(sw, sw.isChecked());
+            androidx.core.view.ViewCompat.setStateDescription(w, c.getString(sw.isChecked() ? R.string.perm_on : R.string.state_off));
+        });
+        androidx.core.view.ViewCompat.setStateDescription(w, c.getString(on ? R.string.perm_on : R.string.state_off));
+        androidx.core.view.ViewCompat.setAccessibilityDelegate(w, new androidx.core.view.AccessibilityDelegateCompat() {
+            @Override
+            public void onInitializeAccessibilityNodeInfo(View host, androidx.core.view.accessibility.AccessibilityNodeInfoCompat info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName("android.widget.Switch");
+                info.setCheckable(true);
+                info.setChecked(sw.isChecked());
+            }
         });
         return w;
+    }
+
+    // ------------------------------------------------------------------ polish helpers
+
+    public static void toast(Context c, int res) {
+        toast(c, c.getString(res));
+    }
+
+    /** Small pill that slides up above the mini player, replaces the stock Toast. */
+    public static void toast(final Context c, CharSequence msg) {
+        ViewGroup content = c instanceof android.app.Activity ? ((android.app.Activity) c).findViewById(android.R.id.content) : null;
+        if (content == null) {
+            android.widget.Toast.makeText(c, msg, android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Object old = content.getTag(R.id.tag_toast);
+        if (old instanceof View) content.removeView((View) old);
+        final TextView t = text(c, msg, 14, R.color.text_primary);
+        t.setBackgroundResource(R.drawable.bg_toast);
+        t.setGravity(Gravity.CENTER);
+        t.setMaxLines(2);
+        t.setPadding(dp(c, 22), dp(c, 13), dp(c, 22), dp(c, 13));
+        t.setElevation(dp(c, 8));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        lp.bottomMargin = dp(c, 96);
+        lp.leftMargin = lp.rightMargin = dp(c, 24);
+        content.addView(t, lp);
+        content.setTag(R.id.tag_toast, t);
+        t.setAlpha(0f);
+        t.setTranslationY(dp(c, 14));
+        t.animate().alpha(1f).translationY(0f).setDuration(240)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(2f))
+                .withEndAction(() -> t.postDelayed(() -> {
+                    if (t.getParent() != null) t.animate().alpha(0f).translationY(dp(c, 10)).setDuration(220)
+                            .withEndAction(() -> {
+                                if (t.getParent() instanceof ViewGroup) ((ViewGroup) t.getParent()).removeView(t);
+                            }).start();
+                }, 1700)).start();
+    }
+
+    /** Search field with a leading magnifier. */
+    public static EditText searchEdit(Context c, CharSequence hint) {
+        EditText e = edit(c, hint, null);
+        Drawable d = DrawableCompat.wrap(ContextCompat.getDrawable(c, R.drawable.ic_search).mutate());
+        DrawableCompat.setTint(d, color(c, R.color.text_hint));
+        d.setBounds(0, 0, dp(c, 20), dp(c, 20));
+        e.setCompoundDrawablesRelative(d, null, null, null);
+        e.setCompoundDrawablePadding(dp(c, 12));
+        e.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        return e;
+    }
+
+    /** Loading placeholder that mirrors the real list (two pills + rows), so the screen never jumps. */
+    public static LinearLayout skeleton(Context c) {
+        LinearLayout col = new LinearLayout(c);
+        col.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout pills = new LinearLayout(c);
+        pills.setPadding(dp(c, 20), dp(c, 6), dp(c, 20), dp(c, 10));
+        for (int i = 0; i < 2; i++) {
+            View p = new View(c);
+            GradientDrawable g = new GradientDrawable();
+            g.setCornerRadius(dp(c, 100));
+            g.setColor(color(c, R.color.surface));
+            p.setBackground(g);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(c, 46), 1f);
+            if (i > 0) lp.setMarginStart(dp(c, 10));
+            pills.addView(p, lp);
+        }
+        col.addView(pills);
+        int[] w1 = {170, 210, 140, 190, 160, 220, 150, 200};
+        for (int i = 0; i < w1.length; i++) {
+            FrameLayout shell = new FrameLayout(c);
+            shell.setPadding(dp(c, 14), dp(c, 1), dp(c, 14), dp(c, 1));
+            LinearLayout card = new LinearLayout(c);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPaddingRelative(dp(c, 12), dp(c, 10), dp(c, 12), dp(c, 10));
+            shape(c, card, i == 0, i == w1.length - 1, R.color.surface);
+            card.addView(block(c, 52, 52, 14));
+            LinearLayout t = new LinearLayout(c);
+            t.setOrientation(LinearLayout.VERTICAL);
+            t.addView(block(c, w1[i], 14, 7));
+            LinearLayout.LayoutParams sp = lp(dp(c, w1[i] - 60), dp(c, 11));
+            sp.topMargin = dp(c, 9);
+            t.addView(block(c, w1[i] - 60, 11, 6), sp);
+            LinearLayout.LayoutParams tp = lp(-2, -2);
+            tp.setMarginStart(dp(c, 14));
+            card.addView(t, tp);
+            shell.addView(card, new FrameLayout.LayoutParams(-1, -2));
+            col.addView(shell, new LinearLayout.LayoutParams(-1, -2));
+        }
+        return col;
+    }
+
+    private static View block(Context c, int wDp, int hDp, int rDp) {
+        View v = new View(c);
+        GradientDrawable g = new GradientDrawable();
+        g.setCornerRadius(dp(c, rDp));
+        g.setColor(color(c, R.color.surface_high));
+        v.setBackground(g);
+        v.setLayoutParams(lp(dp(c, wDp), dp(c, hDp)));
+        return v;
+    }
+
+    public interface ChipToggle {
+        /** Return false to refuse the change (the chip stays as it was). */
+        boolean onToggle(int index, boolean wantOn, int enabledCount);
+    }
+
+    /** Compact on/off pills in rows of three inside one rounded card (used for the audio formats). */
+    public static View chipGrid(final Context c, final String[] names, final String[] desc, final boolean[] on, final ChipToggle cb) {
+        FrameLayout shell = new FrameLayout(c);
+        shell.setPadding(dp(c, 14), dp(c, 1), dp(c, 14), dp(c, 1));
+        LinearLayout card = new LinearLayout(c);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(c, 10), dp(c, 10), dp(c, 10), dp(c, 10));
+        shape(c, card, true, true, R.color.surface);
+        card.setBackground(((RippleDrawable) card.getBackground()).getDrawable(0));
+        final TextView[] chips = new TextView[names.length];
+        LinearLayout row = null;
+        for (int i = 0; i < names.length; i++) {
+            if (i % 3 == 0) {
+                row = new LinearLayout(c);
+                card.addView(row, new LinearLayout.LayoutParams(-1, -2));
+            }
+            final int idx = i;
+            final TextView t = new TextView(c);
+            t.setText(names[i]);
+            t.setTextSize(14);
+            t.setGravity(Gravity.CENTER);
+            t.setSingleLine(true);
+            t.setContentDescription(names[i] + ", " + desc[i]);
+            chips[i] = t;
+            styleChip(c, t, on[i]);
+            t.setOnClickListener(v -> {
+                int cnt = 0;
+                for (boolean b : on) if (b) cnt++;
+                boolean want = !on[idx];
+                if (cb.onToggle(idx, want, cnt)) {
+                    on[idx] = want;
+                    styleChip(c, t, want);
+                    tap(v);
+                } else {
+                    v.performHapticFeedback(android.os.Build.VERSION.SDK_INT >= 30
+                            ? android.view.HapticFeedbackConstants.REJECT : android.view.HapticFeedbackConstants.LONG_PRESS);
+                }
+            });
+            press(c, t);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(c, 44), 1f);
+            lp.setMargins(dp(c, 4), dp(c, 4), dp(c, 4), dp(c, 4));
+            row.addView(t, lp);
+        }
+        shell.addView(card, new FrameLayout.LayoutParams(-1, -2));
+        return shell;
+    }
+
+    private static void styleChip(Context c, TextView t, boolean on) {
+        t.setBackgroundResource(on ? R.drawable.bg_chip_on : R.drawable.bg_chip_off);
+        t.setTextColor(color(c, on ? R.color.on_accent : R.color.text_secondary));
+        t.setTypeface(on ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
     }
 }

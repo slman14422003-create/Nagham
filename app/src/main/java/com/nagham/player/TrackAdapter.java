@@ -38,6 +38,7 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
     public ItemTouchHelper helper;
     public View header;
     private long current = -1;
+    private boolean playing;
     private final Listener l;
     private final Context ctx;
 
@@ -50,17 +51,42 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
         return header == null ? 0 : 1;
     }
 
+    private boolean hadHeader;
+
+    /** Skips the whole re-bind when nothing actually changed (onResume refreshes a lot). */
     @SuppressLint("NotifyDataSetChanged")
     public void setData(List<Track> list) {
+        boolean hdr = header != null;
+        boolean same = list.size() == data.size() && hdr == hadHeader;
+        for (int i = 0; same && i < list.size(); i++) same = list.get(i).id == data.get(i).id;
+        if (same) return;
+        hadHeader = hdr;
         data.clear();
         data.addAll(list);
         notifyDataSetChanged();
     }
 
+    /** Play / pause: only the current row's equalizer changes. */
+    public void setPlaying(boolean p) {
+        if (p == playing) return;
+        playing = p;
+        for (int i = 0; i < data.size(); i++) {
+            if (data.get(i).id == current) {
+                notifyItemChanged(i + off());
+                break;
+            }
+        }
+    }
+
+    /** Only the previously playing and the newly playing rows are re-drawn. */
     public void setCurrent(long id) {
         if (id == current) return;
+        long old = current;
         current = id;
-        notifyItemRangeChanged(off(), data.size());
+        for (int i = 0; i < data.size(); i++) {
+            long t = data.get(i).id;
+            if (t == old || t == id) notifyItemChanged(i + off());
+        }
     }
 
     public void toggle(int pos) {
@@ -74,6 +100,8 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
         final ImageView art, check;
         final TextView title, sub;
         final ImageButton more, handle;
+        View scrim;
+        EqView eq;
 
         VH(FrameLayout headerHolder) {
             super(headerHolder);
@@ -119,7 +147,17 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
         root.addView(card, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         ImageView art = Ui.artView(c, 52, 14);
-        card.addView(art);
+        FrameLayout artBox = new FrameLayout(c);
+        artBox.addView(art);
+        View scrim = new View(c);
+        scrim.setBackgroundColor(0x88000000);
+        Ui.round(scrim, Ui.dp(c, 14));
+        scrim.setVisibility(View.GONE);
+        artBox.addView(scrim, new FrameLayout.LayoutParams(Ui.dp(c, 52), Ui.dp(c, 52)));
+        EqView eq = new EqView(c);
+        eq.setVisibility(View.GONE);
+        artBox.addView(eq, new FrameLayout.LayoutParams(Ui.dp(c, 18), Ui.dp(c, 18), Gravity.CENTER));
+        card.addView(artBox, Ui.lp(Ui.dp(c, 52), Ui.dp(c, 52)));
         LinearLayout col = new LinearLayout(c);
         col.setOrientation(LinearLayout.VERTICAL);
         TextView title = Ui.text(c, "", 16, R.color.text_primary);
@@ -143,13 +181,16 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
         LinearLayout.LayoutParams kp = Ui.lp(Ui.dp(c, 28), Ui.dp(c, 28));
         kp.setMarginEnd(Ui.dp(c, 10));
         card.addView(check, kp);
-        ImageButton more = Ui.flat(c, R.drawable.ic_more, 44, R.string.more, null);
+        ImageButton more = Ui.flat(c, R.drawable.ic_more, 48, R.string.more, null);
         Ui.tint(more, R.color.text_secondary);
         card.addView(more);
-        ImageButton handle = Ui.flat(c, R.drawable.ic_sort, 44, R.string.reorder, null);
+        ImageButton handle = Ui.flat(c, R.drawable.ic_sort, 48, R.string.reorder, null);
         Ui.tint(handle, R.color.text_secondary);
         card.addView(handle);
-        return new VH(root, card, art, title, sub, more, handle, check);
+        VH vh = new VH(root, card, art, title, sub, more, handle, check);
+        vh.scrim = scrim;
+        vh.eq = eq;
+        return vh;
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -166,13 +207,16 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
         }
         final int pos = position - off();
         final Track t = data.get(pos);
-        boolean playing = t.id == current;
+        boolean isCur = t.id == current;
         boolean sel = select && selected.contains(t.id);
         h.title.setText(t.title);
-        h.title.setTextColor(Ui.color(ctx, playing ? R.color.accent_text : R.color.text_primary));
+        h.title.setTextColor(Ui.color(ctx, isCur ? R.color.accent_text : R.color.text_primary));
         h.sub.setText(Fmt.artist(ctx, t.artist) + " · " + Fmt.time(t.duration));
         Art.load(ctx, t.uri, h.art, Ui.dp(ctx, 52));
-        Ui.shape(ctx, h.card, pos == 0, pos == data.size() - 1, sel || playing ? R.color.accent_soft : R.color.surface);
+        Ui.shape(ctx, h.card, pos == 0, pos == data.size() - 1, sel || isCur ? R.color.accent_soft : R.color.surface);
+        h.scrim.setVisibility(isCur && !select ? View.VISIBLE : View.GONE);
+        h.eq.setVisibility(isCur && !select ? View.VISIBLE : View.GONE);
+        h.eq.setAnimating(isCur && playing);
         h.check.setVisibility(select ? View.VISIBLE : View.GONE);
         h.check.setSelected(sel);
         Ui.tint(h.check, sel ? R.color.on_accent : R.color.text_hint);

@@ -9,6 +9,8 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.media3.common.MediaItem;
+import androidx.media3.session.MediaController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,11 +26,11 @@ public final class Menus {
             List<Sheet.Item> l = new ArrayList<>();
             l.add(Sheet.item(R.drawable.ic_play, c.getString(R.string.play_next), false, false, () -> {
                 Pb.next(c, t);
-                Toast.makeText(c, R.string.added_queue, Toast.LENGTH_SHORT).show();
+                Ui.toast(c, R.string.added_queue);
             }));
             l.add(Sheet.item(R.drawable.ic_list, c.getString(R.string.add_to_queue), false, false, () -> {
                 Pb.enqueue(c, t);
-                Toast.makeText(c, R.string.added_queue, Toast.LENGTH_SHORT).show();
+                Ui.toast(c, R.string.added_queue);
             }));
             l.add(Sheet.item(R.drawable.ic_add, c.getString(R.string.add_to_playlist), false, false, () -> addToPlaylist(c, t.id, changed)));
             boolean fav = Store.has(c, Store.FAV, t.id);
@@ -62,6 +64,28 @@ public final class Menus {
         });
     }
 
+    /** What is coming up in the play queue; tap a row to jump to it. */
+    public static void queue(final Context c) {
+        Sheet.show(c, c.getString(R.string.up_next), () -> {
+            List<Sheet.Item> l = new ArrayList<>();
+            final MediaController m = Pb.get();
+            if (m == null) return l;
+            int cur = m.getCurrentMediaItemIndex(), n = m.getMediaItemCount();
+            for (int i = Math.max(0, cur); i < Math.min(n, cur + 60); i++) {
+                final int idx = i;
+                MediaItem it = m.getMediaItemAt(i);
+                String a = it.mediaMetadata.artist == null ? "" : it.mediaMetadata.artist.toString();
+                String t = it.mediaMetadata.title == null ? "" : it.mediaMetadata.title.toString();
+                l.add(Sheet.item(i == cur ? R.drawable.ic_play : R.drawable.ic_music, a.isEmpty() ? t : t + " — " + a,
+                        i == cur, false, () -> {
+                            m.seekToDefaultPosition(idx);
+                            m.play();
+                        }));
+            }
+            return l;
+        });
+    }
+
     public static void sort(final Context c, final Runnable changed) {
         final int[] names = {R.string.sort_title, R.string.sort_artist, R.string.sort_recent, R.string.sort_duration};
         Sheet.show(c, c.getString(R.string.sort_by), () -> {
@@ -83,7 +107,7 @@ public final class Menus {
             for (final int m : new int[]{15, 30, 45, 60, 90}) {
                 l.add(Sheet.item(R.drawable.ic_timer, c.getString(R.string.sleep_min, m), false, false, () -> {
                     Pb.sleep(m);
-                    Toast.makeText(c, c.getString(R.string.sleep_set, m), Toast.LENGTH_SHORT).show();
+                    Ui.toast(c, c.getString(R.string.sleep_set, m));
                 }));
             }
             if (Pb.sleepAt > 0) l.add(Sheet.item(R.drawable.ic_delete, c.getString(R.string.sleep_off), false, false, () -> Pb.sleep(0)));

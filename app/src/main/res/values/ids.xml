@@ -3,4 +3,6 @@
     <item name="card" type="id" />
     <item name="tag_art" type="id" />
     <item name="tag_insets" type="id" />
+    <item name="tag_art_ok" type="id" />
+    <item name="tag_toast" type="id" />
 </resources>

@@ -37,12 +37,14 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     private final PlaylistAdapter lists = new PlaylistAdapter();
     private RecyclerView rv;
     private TextView segSongs, segLists, subtitle, emptyText;
-    private LinearLayout emptyBox;
+    private LinearLayout emptyBox, skeleton;
+    private android.animation.ObjectAnimator pulse;
     private Button grant;
     private View actions, banner;
     private EditText search;
     private MiniPlayer mini;
     private int tab = 0;
+    private boolean animateNext = true;
     private String query = "";
     private List<Track> shown = new ArrayList<>();
 
@@ -54,11 +56,18 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         public void onMediaItemTransition(MediaItem item, int reason) {
             songs.setCurrent(Pb.currentId());
         }
+
+        @Override
+        public void onIsPlayingChanged(boolean isPlaying) {
+            songs.setPlaying(isPlaying);
+        }
     };
 
     @Override
     protected void onCreate(Bundle b) {
-        SplashScreen.installSplashScreen(this);
+        SplashScreen splash = SplashScreen.installSplashScreen(this);
+        splash.setOnExitAnimationListener(p -> p.getView().animate().alpha(0f).scaleX(1.14f).scaleY(1.14f).setDuration(260)
+                .setInterpolator(new android.view.animation.AccelerateInterpolator()).withEndAction(p::remove).start());
         super.onCreate(b);
         Pb.connect(this);
         build();
@@ -96,7 +105,12 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         }
         root.addView(bar);
 
-        search = Ui.edit(this, getString(R.string.search_hint), null);
+        search = Ui.searchEdit(this, getString(R.string.search_hint));
+        search.setOnEditorActionListener((v, id, ev) -> {
+            android.view.inputmethod.InputMethodManager im = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (im != null) im.hideSoftInputFromWindow(v.getWindowToken(), 0);
+            return true;
+        });
         search.setVisibility(View.GONE);
         search.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
@@ -139,7 +153,21 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         rv.setClipToPadding(false);
         rv.setPadding(0, Ui.dp(this, 4), 0, Ui.dp(this, 8));
         rv.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        rv.setHasFixedSize(true);
+        rv.setItemViewCacheSize(12);
+        rv.setLayoutAnimation(android.view.animation.AnimationUtils.loadLayoutAnimation(this, R.anim.layout_fall));
+        RecyclerView.ItemAnimator ia = rv.getItemAnimator();
+        if (ia instanceof androidx.recyclerview.widget.SimpleItemAnimator) {
+            ((androidx.recyclerview.widget.SimpleItemAnimator) ia).setSupportsChangeAnimations(false);
+        }
         body.addView(rv, new FrameLayout.LayoutParams(-1, -1));
+        skeleton = Ui.skeleton(this);
+        skeleton.setVisibility(View.GONE);
+        body.addView(skeleton, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
+        pulse = android.animation.ObjectAnimator.ofFloat(skeleton, "alpha", 0.45f, 1f);
+        pulse.setDuration(850);
+        pulse.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+        pulse.setRepeatMode(android.animation.ObjectAnimator.REVERSE);
 
         emptyBox = new LinearLayout(this);
         emptyBox.setOrientation(LinearLayout.VERTICAL);
@@ -173,7 +201,10 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         t.setGravity(Gravity.CENTER);
         t.setTextSize(14);
         t.setSingleLine(true);
-        t.setOnClickListener(v -> setTab(i));
+        t.setOnClickListener(v -> {
+            if (tab != i) Ui.tap(v);
+            setTab(i);
+        });
         Ui.press(this, t);
         return t;
     }
@@ -216,17 +247,13 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     }
 
     private void refresh() {
-        List<Track> all = new ArrayList<>(Library.tracks);
-        int total = all.size();
+        List<Track> all = Library.sorted(Store.sort(this));
+        int total = Library.tracks.size();
         if (!query.isEmpty()) {
             List<Track> f = new ArrayList<>();
-            for (Track t : all) {
-                if (t.title.toLowerCase().contains(query) || (t.artist != null && t.artist.toLowerCase().contains(query))
-                        || (t.album != null && t.album.toLowerCase().contains(query))) f.add(t);
-            }
+            for (Track t : all) if (t.key.contains(query)) f.add(t);
             all = f;
         }
-        Library.sort(all, Store.sort(this));
         shown = all;
         songs.header = all.isEmpty() ? null : actions;
         songs.setData(all);
@@ -236,13 +263,26 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         styleSeg(segSongs, R.string.tab_songs, total, tab == 0);
         styleSeg(segLists, R.string.tab_playlists, Store.playlists(this).size(), tab == 1);
         RecyclerView.Adapter<?> target = tab == 0 ? songs : lists;
-        if (rv.getAdapter() != target) rv.setAdapter(target);
-        lists.notifyDataSetChanged();
+        boolean swapped = rv.getAdapter() != target;
+        if (swapped) rv.setAdapter(target);
+        if (tab == 1) lists.notifyDataSetChanged();
+        if ((swapped || animateNext) && target.getItemCount() > 0) {
+            animateNext = false;
+            rv.scheduleLayoutAnimation();
+        }
 
         boolean audio = Perms.hasAudio(this);
-        if (tab == 0 && all.isEmpty()) {
+        boolean loading = tab == 0 && audio && !Library.loaded;
+        skeleton.setVisibility(loading ? View.VISIBLE : View.GONE);
+        if (loading) {
+            if (!pulse.isStarted()) pulse.start();
+        } else {
+            pulse.cancel();
+        }
+        songs.setPlaying(Pb.get() != null && Pb.get().isPlaying());
+        if (tab == 0 && all.isEmpty() && !loading) {
             emptyBox.setVisibility(View.VISIBLE);
-            emptyText.setText(!audio ? R.string.no_access : Library.loaded ? R.string.no_songs : R.string.scanning);
+            emptyText.setText(!audio ? R.string.no_access : R.string.no_songs);
             grant.setVisibility(audio ? View.GONE : View.VISIBLE);
         } else {
             emptyBox.setVisibility(View.GONE);
@@ -307,7 +347,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
                 Ui.shape(MainActivity.this, row.findViewById(R.id.card), true, n == 1, R.color.accent_soft);
             } else {
                 final Store.Playlist pl = Store.playlists(MainActivity.this).get(pos - 1);
-                int cnt = Library.resolve(pl.ids).size();
+                int cnt = Library.count(pl.ids);
                 row = Ui.settingRow(MainActivity.this, Store.FAV.equals(pl.id) ? R.drawable.ic_heart_fill : R.drawable.ic_list,
                         pl.name, getResources().getQuantityString(R.plurals.songs_n, cnt, cnt), null, false, v -> {
                             Intent i = new Intent(MainActivity.this, PlaylistActivity.class);
