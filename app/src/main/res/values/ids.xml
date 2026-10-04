@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="card" type="id" />
+    <item name="tag_art" type="id" />
+    <item name="tag_insets" type="id" />
+</resources>

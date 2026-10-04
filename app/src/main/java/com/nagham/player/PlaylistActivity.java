@@ -1,0 +1,171 @@
+package com.nagham.player;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/** One playlist: play / shuffle, drag handle to reorder, swipe a row away to remove, + to add many songs at once. */
+public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.Listener {
+    private String pid;
+    private TrackAdapter ad;
+    private LinearLayout root;
+    private TextView empty;
+    private LinearLayout titleHolder;
+
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        pid = getIntent().getStringExtra("pid");
+        if (pid == null || Store.playlist(this, pid) == null) {
+            finish();
+            return;
+        }
+        Pb.connect(this);
+        root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        titleHolder = new LinearLayout(this);
+        root.addView(titleHolder);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setPadding(Ui.dp(this, 20), Ui.dp(this, 6), Ui.dp(this, 20), Ui.dp(this, 10));
+        actions.addView(Ui.pill(this, R.string.play_all, R.drawable.ic_play, true, v -> play(false)));
+        actions.addView(new View(this), Ui.lp(Ui.dp(this, 10), 1));
+        actions.addView(Ui.pill(this, R.string.shuffle_all, R.drawable.ic_shuffle, false, v -> play(true)));
+        root.addView(actions);
+
+        FrameLayout body = new FrameLayout(this);
+        ad = new TrackAdapter(this, this);
+        ad.reorder = true;
+        RecyclerView rv = new RecyclerView(this);
+        rv.setLayoutManager(new LinearLayoutManager(this));
+        rv.setAdapter(ad);
+        rv.setClipToPadding(false);
+        rv.setPadding(0, 0, 0, Ui.dp(this, 16));
+        ItemTouchHelper helper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN,
+                ItemTouchHelper.START | ItemTouchHelper.END) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView r, @NonNull RecyclerView.ViewHolder from, @NonNull RecyclerView.ViewHolder to) {
+                int a = from.getBindingAdapterPosition(), c = to.getBindingAdapterPosition();
+                Collections.swap(ad.data, a, c);
+                ad.notifyItemMoved(a, c);
+                return true;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
+                int p = vh.getBindingAdapterPosition();
+                if (p < 0) return;
+                ad.data.remove(p);
+                ad.notifyItemRemoved(p);
+                saveOrder();
+                updateEmpty();
+            }
+
+            @Override
+            public boolean isLongPressDragEnabled() {
+                return false;
+            }
+
+            @Override
+            public void clearView(@NonNull RecyclerView r, @NonNull RecyclerView.ViewHolder vh) {
+                super.clearView(r, vh);
+                saveOrder();
+                ad.notifyDataSetChanged();
+            }
+        });
+        helper.attachToRecyclerView(rv);
+        ad.helper = helper;
+        body.addView(rv, new FrameLayout.LayoutParams(-1, -1));
+        empty = Ui.text(this, getString(R.string.empty_playlist), 15, R.color.text_secondary);
+        empty.setGravity(Gravity.CENTER);
+        empty.setPadding(Ui.dp(this, 36), 0, Ui.dp(this, 36), 0);
+        body.addView(empty, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
+        root.addView(body, new LinearLayout.LayoutParams(-1, 0, 1f));
+        setContentView(root);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Store.Playlist p = Store.playlist(this, pid);
+        if (p == null) {
+            finish();
+            return;
+        }
+        titleHolder.removeAllViews();
+        // rebuilt on every resume so a rename shows immediately
+        List<ImageButton> acts = new ArrayList<>();
+        acts.add(Ui.icon(this, R.drawable.ic_add, R.string.add_songs, v -> {
+            Intent it = new Intent(this, PickSongsActivity.class);
+            it.putExtra("pid", pid);
+            startActivity(it);
+        }));
+        if (!Store.FAV.equals(pid)) acts.add(Ui.icon(this, R.drawable.ic_more, R.string.more, v -> manage()));
+        titleHolder.addView(Ui.topBar(this, p.name, R.drawable.ic_back, acts.toArray(new ImageButton[0])),
+                new LinearLayout.LayoutParams(-1, -2));
+        ad.setData(Library.resolve(p.ids));
+        updateEmpty();
+    }
+
+    private void updateEmpty() {
+        empty.setVisibility(ad.data.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private void saveOrder() {
+        List<Long> ids = new ArrayList<>();
+        for (Track t : ad.data) ids.add(t.id);
+        Store.setOrder(this, pid, ids);
+    }
+
+    private void play(boolean shuffle) {
+        if (ad.data.isEmpty()) return;
+        Pb.play(this, new ArrayList<>(ad.data), shuffle ? -1 : 0, shuffle);
+    }
+
+    private void manage() {
+        final Store.Playlist p = Store.playlist(this, pid);
+        if (p == null) return;
+        Sheet.show(this, p.name, () -> {
+            List<Sheet.Item> l = new ArrayList<>();
+            l.add(Sheet.item(R.drawable.ic_edit, getString(R.string.rename), false, false, () ->
+                    Menus.ask(this, R.string.rename, p.name, name -> {
+                        Store.rename(this, pid, name);
+                        onResume();
+                    })));
+            l.add(Sheet.item(R.drawable.ic_delete, getString(R.string.delete), false, false, () ->
+                    new AlertDialog.Builder(this, R.style.AppDialog)
+                            .setMessage(getString(R.string.confirm_delete_playlist, p.name))
+                            .setPositiveButton(R.string.delete, (d, w) -> {
+                                Store.delete(this, pid);
+                                finish();
+                            })
+                            .setNegativeButton(R.string.cancel, null).show()));
+            return l;
+        });
+    }
+
+    @Override
+    public void onClick(Track t, int pos) {
+        Pb.play(this, new ArrayList<>(ad.data), pos, false);
+    }
+
+    @Override
+    public void onMore(Track t, int pos) {
+    }
+}
