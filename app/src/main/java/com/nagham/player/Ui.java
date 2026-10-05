@@ -43,6 +43,14 @@ public final class Ui {
         };
     }
 
+    /** A context that always resolves the dark (AMOLED) colors: the full player and lock screen sit on cover art. */
+    public static Context dark(Context c) {
+        android.content.res.Configuration cfg = new android.content.res.Configuration(c.getResources().getConfiguration());
+        cfg.uiMode = (cfg.uiMode & ~android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                | android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        return new androidx.appcompat.view.ContextThemeWrapper(c.createConfigurationContext(cfg), R.style.AppTheme);
+    }
+
     public static int dp(Context c, int v) {
         return (int) (v * c.getResources().getDisplayMetrics().density + 0.5f);
     }
@@ -307,17 +315,95 @@ public final class Ui {
     // ------------------------------------------------------------------ grouped rows
 
     /** Rounds a card like the ChatGPT-style grouped lists: big corners at the group ends, small in between. */
+    private static final java.util.HashMap<String, android.graphics.drawable.Drawable.ConstantState> SHAPES = new java.util.HashMap<>();
+
     public static void shape(Context c, View card, boolean first, boolean last, int fillRes) {
-        float big = dp(c, 24), small = dp(c, 6);
+        int fillCol = color(c, fillRes), ripCol = color(c, R.color.ripple), bigPx = dp(c, 24);
+        String key = first + "," + last + "," + fillCol + "," + ripCol + "," + bigPx;
+        android.graphics.drawable.Drawable.ConstantState cs = SHAPES.get(key);
+        if (cs != null) {
+            card.setBackground(cs.newDrawable(c.getResources()));
+            return;
+        }
+        float big = bigPx, small = dp(c, 6);
         float top = first ? big : small, bottom = last ? big : small;
         float[] r = {top, top, top, top, bottom, bottom, bottom, bottom};
         GradientDrawable fill = new GradientDrawable();
-        fill.setColor(color(c, fillRes));
+        fill.setColor(fillCol);
         fill.setCornerRadii(r);
         GradientDrawable mask = new GradientDrawable();
         mask.setColor(0xFFFFFFFF);
         mask.setCornerRadii(r);
-        card.setBackground(new RippleDrawable(ColorStateList.valueOf(color(c, R.color.ripple)), fill, mask));
+        RippleDrawable rd = new RippleDrawable(ColorStateList.valueOf(ripCol), fill, mask);
+        android.graphics.drawable.Drawable.ConstantState st = rd.getConstantState();
+        if (st != null) {
+            if (SHAPES.size() > 64) SHAPES.clear();
+            SHAPES.put(key, st);
+        }
+        card.setBackground(rd);
+    }
+
+    /**
+     * Drag a sheet down by its header: follows the finger, rubber-bands upward, and closes on a fling or past
+     * a short distance (it animates out first, so there is no jump). Can be caught again mid-spring.
+     */
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    public static void dragDismiss(final View head, final View root, final android.app.Dialog d) {
+        final Context c = head.getContext();
+        final int slop = android.view.ViewConfiguration.get(c).getScaledTouchSlop();
+        final float[] st = new float[2]; // [0] raw y at down, [1] translation at down
+        final android.view.VelocityTracker[] vt = new android.view.VelocityTracker[1];
+        final boolean[] moving = {false};
+        head.setOnTouchListener((v, e) -> {
+            switch (e.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    root.animate().cancel();
+                    st[0] = e.getRawY();
+                    st[1] = root.getTranslationY();
+                    moving[0] = st[1] != 0f;
+                    if (vt[0] != null) vt[0].recycle();
+                    vt[0] = android.view.VelocityTracker.obtain();
+                    vt[0].addMovement(e);
+                    return true;
+                case android.view.MotionEvent.ACTION_MOVE: {
+                    if (vt[0] == null) return false;
+                    vt[0].addMovement(e);
+                    float dy = e.getRawY() - st[0];
+                    if (!moving[0] && Math.abs(dy) < slop) return true;
+                    moving[0] = true;
+                    float t = st[1] + dy;
+                    root.setTranslationY(t >= 0f ? t : t * 0.12f);
+                    return true;
+                }
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL: {
+                    if (vt[0] == null) return false;
+                    vt[0].addMovement(e);
+                    vt[0].computeCurrentVelocity(1000);
+                    float vy = vt[0].getYVelocity();
+                    vt[0].recycle();
+                    vt[0] = null;
+                    boolean up = e.getActionMasked() == android.view.MotionEvent.ACTION_UP;
+                    float ty = root.getTranslationY();
+                    if (up && (vy > 1100f || (vy > -500f && ty > dp(c, 110)))) {
+                        root.animate().translationY(Math.max(root.getHeight(), dp(c, 200))).setDuration(200)
+                                .setInterpolator(new android.view.animation.AccelerateInterpolator(1.4f))
+                                .withEndAction(() -> {
+                                    try {
+                                        d.dismiss();
+                                    } catch (Exception ignored) {
+                                    }
+                                }).start();
+                    } else {
+                        root.animate().translationY(0f).setDuration(280)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator(2.2f)).start();
+                    }
+                    return true;
+                }
+                default:
+                    return false;
+            }
+        });
     }
 
     /** Shapes every consecutive run of row cards inside a container as one rounded group. */

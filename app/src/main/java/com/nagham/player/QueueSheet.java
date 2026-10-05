@@ -78,24 +78,7 @@ public final class QueueSheet {
         titleRow.addView(count);
         head.addView(titleRow);
         root.addView(head);
-        final float[] y0 = {0};
-        head.setOnTouchListener((v, e) -> {
-            switch (e.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                    y0[0] = e.getRawY();
-                    return true;
-                case MotionEvent.ACTION_MOVE:
-                    root.setTranslationY(Math.max(0f, e.getRawY() - y0[0]));
-                    return true;
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    if (root.getTranslationY() > Ui.dp(c, 110)) d.dismiss();
-                    else root.animate().translationY(0f).setDuration(220).start();
-                    return true;
-                default:
-                    return false;
-            }
-        });
+        Ui.dragDismiss(head, root, d);
 
         // ---- list
         final Adapter ad = new Adapter(c, m, count);
@@ -130,9 +113,15 @@ public final class QueueSheet {
             }
 
             @Override
+            public float getSwipeThreshold(@NonNull RecyclerView.ViewHolder vh) {
+                return 0.6f;   // a clear swipe to remove, not an accidental brush
+            }
+
+            @Override
             public void onSelectedChanged(RecyclerView.ViewHolder vh, int state) {
                 super.onSelectedChanged(vh, state);
                 if (vh != null && state == ItemTouchHelper.ACTION_STATE_DRAG) {
+                    Ui.tap(vh.itemView);
                     vh.itemView.animate().scaleX(1.03f).scaleY(1.03f).alpha(0.94f).setDuration(120).start();
                 }
             }

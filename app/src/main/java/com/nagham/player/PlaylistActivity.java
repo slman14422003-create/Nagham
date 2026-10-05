@@ -58,7 +58,8 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
             @Override
             public boolean onMove(@NonNull RecyclerView r, @NonNull RecyclerView.ViewHolder from, @NonNull RecyclerView.ViewHolder to) {
                 int a = from.getBindingAdapterPosition(), c = to.getBindingAdapterPosition();
-                Collections.swap(ad.data, a, c);
+                if (a < 0 || c < 0 || a >= ad.data.size() || c >= ad.data.size()) return false;
+                ad.data.add(c, ad.data.remove(a));   // a fast drag can skip rows: move, never swap
                 ad.notifyItemMoved(a, c);
                 return true;
             }
@@ -66,11 +67,16 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
                 int p = vh.getBindingAdapterPosition();
-                if (p < 0) return;
+                if (p < 0 || p >= ad.data.size()) return;
                 ad.data.remove(p);
                 ad.notifyItemRemoved(p);
                 saveOrder();
                 updateEmpty();
+                final RecyclerView rr = (RecyclerView) vh.itemView.getParent();
+                if (rr != null) rr.post(() -> {
+                    int n = ad.data.size();
+                    if (n > 0) ad.notifyItemRangeChanged(0, n);
+                });
             }
 
             @Override
@@ -82,7 +88,10 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
             public void clearView(@NonNull RecyclerView r, @NonNull RecyclerView.ViewHolder vh) {
                 super.clearView(r, vh);
                 saveOrder();
-                ad.notifyDataSetChanged();
+                r.post(() -> {
+                    int n = ad.data.size();
+                    if (n > 0) ad.notifyItemRangeChanged(0, n);   // refreshes first / last corner shapes
+                });
             }
         });
         helper.attachToRecyclerView(rv);

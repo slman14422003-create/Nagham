@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AMOLED dark: true black canvas, near-black capsules with visible borders, bright high-contrast text -->
+    <color name="bg">#000000</color>
+    <color name="surface">#111114</color>
+    <color name="surface_high">#1E1E23</color>
+    <color name="field">#0A0A0C</color>
+    <color name="stroke">#34343B</color>
+    <color name="stroke_soft">#25252B</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#C8C8D2</color>
+    <color name="text_hint">#9C9CA8</color>
+    <color name="accent">#3D6BFF</color>
+    <color name="accent_text">#9EB6FF</color>
+    <color name="accent_soft">#0E1A40</color>
+    <color name="neutral_soft">#1A1A1F</color>
+    <color name="pill_primary">#FFFFFF</color>
+    <color name="on_accent">#000000</color>
+    <color name="seg_count_sel">#6B6B76</color>
+    <color name="ripple">#26FFFFFF</color>
+    <color name="ripple_on_accent">#22000000</color>
+    <color name="ok">#4ADE80</color>
+    <color name="bad">#FF6B6B</color>
+    <color name="warn">#F5B94A</color>
+    <color name="info">#6AA6FF</color>
+    <color name="ic_launcher_bg">#020517</color>
+</resources>

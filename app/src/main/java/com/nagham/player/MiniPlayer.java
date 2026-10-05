@@ -108,8 +108,8 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
         setContentDescription(c.getString(R.string.now_playing));
         final int slop = android.view.ViewConfiguration.get(c).getScaledTouchSlop();
         setOnTouchListener(new OnTouchListener() {
-            float x0, y0;
-            boolean vertical, horizontal;
+            float x0, y0, base;
+            boolean vertical, horizontal, moved;
             android.view.VelocityTracker vt;
 
             @Override
@@ -119,7 +119,7 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
                         setPressed(true);
                         x0 = e.getRawX();
                         y0 = e.getRawY();
-                        vertical = horizontal = false;
+                        vertical = horizontal = moved = false;
                         if (vt != null) vt.recycle();
                         vt = android.view.VelocityTracker.obtain();
                         vt.addMovement(e);
@@ -128,9 +128,14 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
                         if (vt == null) return false;
                         vt.addMovement(e);
                         float dx = e.getRawX() - x0, dy = e.getRawY() - y0;
+                        if (!moved && (Math.abs(dx) > slop || Math.abs(dy) > slop)) {
+                            moved = true;
+                            setPressed(false);
+                        }
                         if (!vertical && !horizontal) {
                             if (panel != null && dy < 0 && Math.abs(dy) > slop && Math.abs(dy) > Math.abs(dx)) {
                                 vertical = true;
+                                base = dy;   // the sheet starts exactly under the finger, no jump
                                 setPressed(false);
                                 getParent().requestDisallowInterceptTouchEvent(true);
                                 panel.setCollapsedY(getTop());
@@ -141,7 +146,7 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
                                 getParent().requestDisallowInterceptTouchEvent(true);
                             }
                         }
-                        if (vertical) panel.dragUp(-dy);
+                        if (vertical) panel.dragUp(-(dy - base));
                         else if (horizontal) setTranslationX(dx * 0.6f);
                         return true;
                     }
@@ -159,7 +164,8 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
                         if (vertical) {
                             panel.endDrag(up ? vy : 0f);
                         } else if (horizontal) {
-                            boolean go = up && (Math.abs(dx) > Ui.dp(c, 70) || Math.abs(vx) > 900f);
+                            boolean go = up && (Math.abs(dx) > Ui.dp(c, 70)
+                                    || (Math.abs(vx) > 900f && Math.signum(vx) == Math.signum(dx)));
                             if (go) {
                                 MediaController m = Pb.get();
                                 boolean ltr = getLayoutDirection() == View.LAYOUT_DIRECTION_LTR;
@@ -171,10 +177,10 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
                             }
                             animate().translationX(0f).setDuration(300)
                                     .setInterpolator(new android.view.animation.OvershootInterpolator(2f)).start();
-                        } else if (up && panel != null) {
+                        } else if (up && !moved && panel != null) {
                             panel.setCollapsedY(getTop());
                             panel.expand(true);
-                        } else if (up) {
+                        } else if (up && !moved) {
                             c.startActivity(new Intent(c, PlayerActivity.class));
                         }
                         return true;

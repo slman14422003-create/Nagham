@@ -64,25 +64,7 @@ public final class Sheet {
         t.setPaddingRelative(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 10));
         head.addView(t);
         root.addView(head);
-        final float[] y0 = {0};
-        head.setOnTouchListener((v, e) -> {
-            switch (e.getActionMasked()) {
-                case android.view.MotionEvent.ACTION_DOWN:
-                    y0[0] = e.getRawY();
-                    return true;
-                case android.view.MotionEvent.ACTION_MOVE:
-                    root.setTranslationY(Math.max(0f, e.getRawY() - y0[0]));
-                    return true;
-                case android.view.MotionEvent.ACTION_UP:
-                case android.view.MotionEvent.ACTION_CANCEL:
-                    if (root.getTranslationY() > Ui.dp(c, 110)) d.dismiss();
-                    else root.animate().translationY(0f).setDuration(220)
-                            .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
-                    return true;
-                default:
-                    return false;
-            }
-        });
+        Ui.dragDismiss(head, root, d);
 
         final int maxH = (int) (c.getResources().getDisplayMetrics().heightPixels * 0.62f);
         ScrollView sv = new ScrollView(c) {

@@ -54,7 +54,8 @@ public final class PlayerPanel extends FrameLayout {
 
     @SuppressLint("ClickableViewAccessibility")
     public PlayerPanel(Activity a, Host h) {
-        super(a);
+        super(Ui.dark(a));
+        final android.content.Context d = getContext();
         act = a;
         host = h;
         slop = ViewConfiguration.get(a).getScaledTouchSlop();
@@ -72,38 +73,38 @@ public final class PlayerPanel extends FrameLayout {
         });
         setClipToOutline(true);
 
-        np = new NowPlaying(a, 320, false);
-        final ImageView bg = Backdrop.view(a);
+        np = new NowPlaying(d, 320, false);
+        final ImageView bg = Backdrop.view(d);
         addView(bg, new LayoutParams(-1, -1));
-        View scrim = new View(a);
+        View scrim = new View(d);
         scrim.setBackgroundResource(R.drawable.bg_scrim);
         addView(scrim, new LayoutParams(-1, -1));
 
-        col = new LinearLayout(a);
+        col = new LinearLayout(d);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setPadding(Ui.dp(a, 22), Ui.dp(a, 8), Ui.dp(a, 22), Ui.dp(a, 18));
 
-        LinearLayout top = new LinearLayout(a);
+        LinearLayout top = new LinearLayout(d);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.addView(Ui.icon(a, R.drawable.ic_arrow_down, R.string.close, v -> collapse(true)));
-        TextView cap = Ui.text(a, a.getString(R.string.now_playing), 14, R.color.text_secondary);
+        top.addView(Ui.icon(d, R.drawable.ic_arrow_down, R.string.close, v -> collapse(true)));
+        TextView cap = Ui.text(d, a.getString(R.string.now_playing), 14, R.color.text_secondary);
         cap.setGravity(Gravity.CENTER);
         cap.setTypeface(Typeface.DEFAULT_BOLD);
         cap.setLetterSpacing(0.04f);
         top.addView(cap, Ui.weight(1));
-        top.addView(Ui.icon(a, R.drawable.ic_more, R.string.more, v -> Menus.more(a, this::refreshExtras)));
+        top.addView(Ui.icon(d, R.drawable.ic_more, R.string.more, v -> Menus.more(a, this::refreshExtras)));
         col.addView(top, Ui.lp(-1, -2));
 
-        CoverBox cover = new CoverBox(a, 340);
+        CoverBox cover = new CoverBox(d, 340);
         cover.setPadding(0, Ui.dp(a, 14), 0, Ui.dp(a, 14));
         cover.setCover(np.art);
         col.addView(cover, new LinearLayout.LayoutParams(-1, 0, 1f));
         attachCoverSwipe(np.art);
 
-        LinearLayout titleRow = new LinearLayout(a);
+        LinearLayout titleRow = new LinearLayout(d);
         titleRow.setGravity(Gravity.CENTER_VERTICAL);
         titleRow.addView(np.info, Ui.weight(1));
-        fav = Ui.flat(a, R.drawable.ic_heart, 52, R.string.favorite, v -> {
+        fav = Ui.flat(d, R.drawable.ic_heart, 52, R.string.favorite, v -> {
             long id = Pb.currentId();
             if (id >= 0) Store.toggle(a, Store.FAV, id);
             heart(true);
@@ -120,15 +121,15 @@ public final class PlayerPanel extends FrameLayout {
         cp.topMargin = Ui.dp(a, 4);
         col.addView(np.controls, cp);
 
-        LinearLayout extras = new LinearLayout(a);
+        LinearLayout extras = new LinearLayout(d);
         extras.setGravity(Gravity.CENTER);
-        timer = Ui.icon(a, R.drawable.ic_timer, R.string.sleep_timer, v -> Menus.sleep(a, this::refreshExtras));
+        timer = Ui.icon(d, R.drawable.ic_timer, R.string.sleep_timer, v -> Menus.sleep(a, this::refreshExtras));
         View[] ex = {
-                Ui.icon(a, R.drawable.ic_add, R.string.add_to_playlist, v -> {
+                Ui.icon(d, R.drawable.ic_add, R.string.add_to_playlist, v -> {
                     long id = Pb.currentId();
                     if (id >= 0) Menus.addToPlaylist(a, id, () -> heart(false));
                 }),
-                Ui.icon(a, R.drawable.ic_list, R.string.up_next, v -> Menus.queue(a)),
+                Ui.icon(d, R.drawable.ic_list, R.string.up_next, v -> Menus.queue(a)),
                 timer};
         for (View v : ex) {
             LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) v.getLayoutParams();
@@ -170,6 +171,7 @@ public final class PlayerPanel extends FrameLayout {
     public void beginDrag() {
         if (anim != null) anim.cancel();
         setVisibility(VISIBLE);
+        layer(true);
         col.requestApplyInsets();
         setTranslationY(collapsedY);
         np.start();
@@ -198,10 +200,12 @@ public final class PlayerPanel extends FrameLayout {
         host.onState(true);
         np.start();
         if (animate) {
-            animateTo(0f, 380, null);
+            layer(true);
+            animateTo(0f, 420, null);
         } else {
             setTranslationY(0f);
             applyProgress();
+            layer(false);
         }
     }
 
@@ -213,21 +217,35 @@ public final class PlayerPanel extends FrameLayout {
             np.stop();
             host.onCollapsed();
         };
-        if (animate && getVisibility() == VISIBLE) animateTo(collapsedY, 300, end);
-        else {
+        if (animate && getVisibility() == VISIBLE) {
+            layer(true);
+            animateTo(collapsedY, 320, end);
+        } else {
             setTranslationY(collapsedY);
             applyProgress();
+            layer(false);
             end.run();
         }
     }
 
     // ------------------------------------------------------------------ internals
 
+    /** While the sheet moves it is drawn once into a layer, so dragging and flinging stay at full frame rate. */
+    private void layer(boolean on) {
+        int want = on ? LAYER_TYPE_HARDWARE : LAYER_TYPE_NONE;
+        if (getLayerType() != want) setLayerType(want, null);
+    }
+
+    /** The sheet can be grabbed when open, and also while it is still animating (open or closed). */
+    private boolean canGrab() {
+        return expanded || (getVisibility() == VISIBLE && anim != null && anim.isRunning());
+    }
+
     private void animateTo(float target, long dur, final Runnable end) {
         if (anim != null) anim.cancel();
         anim = ValueAnimator.ofFloat(getTranslationY(), target);
         anim.setDuration(dur);
-        anim.setInterpolator(new DecelerateInterpolator(1.8f));
+        anim.setInterpolator(new android.view.animation.PathInterpolator(0.05f, 0.7f, 0.1f, 1f));
         anim.addUpdateListener(a -> {
             setTranslationY((Float) a.getAnimatedValue());
             applyProgress();
@@ -242,7 +260,9 @@ public final class PlayerPanel extends FrameLayout {
 
             @Override
             public void onAnimationEnd(Animator a) {
-                if (!canceled && end != null) end.run();
+                if (canceled) return;
+                layer(false);
+                if (end != null) end.run();
             }
         });
         anim.start();
@@ -254,8 +274,11 @@ public final class PlayerPanel extends FrameLayout {
         f = Math.max(0f, Math.min(1f, f));
         setAlpha(Math.min(1f, f / 0.22f));
         col.setAlpha(Math.max(0f, Math.min(1f, (f - 0.18f) / 0.6f)));
-        radius = maxRadius * (1f - f);
-        invalidateOutline();
+        float nr = maxRadius * (1f - f);
+        if (nr != radius && (Math.abs(nr - radius) > 0.6f || nr < 0.01f || nr > maxRadius - 0.01f)) {
+            radius = nr;
+            invalidateOutline();
+        }
         host.onProgress(f);
     }
 
@@ -282,6 +305,16 @@ public final class PlayerPanel extends FrameLayout {
 
     // ---- drag the whole sheet down (collapse) ---------------------------------
 
+    private void vtReset(MotionEvent e) {
+        if (vt != null) vt.recycle();
+        vt = VelocityTracker.obtain();
+        vt.addMovement(e);
+    }
+
+    private void vtAdd(MotionEvent e) {
+        if (vt != null) vt.addMovement(e);
+    }
+
     @Override
     public boolean onInterceptTouchEvent(MotionEvent e) {
         switch (e.getActionMasked()) {
@@ -289,9 +322,11 @@ public final class PlayerPanel extends FrameLayout {
                 downX = e.getRawX();
                 downY = e.getRawY();
                 onSeek = hit(np.seekBlock, e);
+                vtReset(e);
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (!tracking && expanded && !onSeek) {
+                vtAdd(e);
+                if (!tracking && canGrab() && !onSeek) {
                     float dy = e.getRawY() - downY, dx = e.getRawX() - downX;
                     if (dy > slop && dy > Math.abs(dx) * 1.1f) {
                         startTracking(e);
@@ -308,9 +343,10 @@ public final class PlayerPanel extends FrameLayout {
     private void startTracking(MotionEvent e) {
         tracking = true;
         if (anim != null) anim.cancel();
+        layer(true);
+        // keep the sheet exactly under the finger: no jump when it is caught mid-animation
         startRaw = e.getRawY() - getTranslationY();
-        vt = VelocityTracker.obtain();
-        vt.addMovement(e);
+        if (vt == null) vtReset(e);
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -321,30 +357,36 @@ public final class PlayerPanel extends FrameLayout {
                 downX = e.getRawX();
                 downY = e.getRawY();
                 onSeek = false;
+                vtReset(e);
                 return true;
             case MotionEvent.ACTION_MOVE:
+                vtAdd(e);
                 if (!tracking) {
                     float dy = e.getRawY() - downY, dx = e.getRawX() - downX;
-                    if (expanded && dy > slop && dy > Math.abs(dx) * 1.1f) startTracking(e);
+                    if (canGrab() && dy > slop && dy > Math.abs(dx) * 1.1f) startTracking(e);
                     return true;
                 }
-                vt.addMovement(e);
                 setTranslationY(Math.max(0f, Math.min(collapsedY, e.getRawY() - startRaw)));
                 applyProgress();
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 if (tracking) {
-                    vt.addMovement(e);
-                    vt.computeCurrentVelocity(1000);
-                    float vy = vt.getYVelocity();
-                    vt.recycle();
-                    vt = null;
+                    vtAdd(e);
+                    float vy = 0f;
+                    if (vt != null) {
+                        vt.computeCurrentVelocity(1000);
+                        vy = vt.getYVelocity();
+                    }
                     tracking = false;
                     boolean closing = e.getActionMasked() == MotionEvent.ACTION_UP
                             && (vy > 900f || (vy > -900f && getTranslationY() > collapsedY * 0.28f));
                     if (closing) collapse(true);
                     else expand(true);
+                }
+                if (vt != null) {
+                    vt.recycle();
+                    vt = null;
                 }
                 return true;
             default:
@@ -382,9 +424,10 @@ public final class PlayerPanel extends FrameLayout {
                         }
                         if (drag) {
                             float w = v.getWidth();
-                            v.setTranslationX(dx);
-                            v.setRotation(dx / w * 10f);
-                            v.setAlpha(1f - Math.min(0.55f, Math.abs(dx) / (w * 1.4f)));
+                            float shown = canGo(dx < 0) ? dx : dx * 0.28f;   // rubber band when there is nothing there
+                            v.setTranslationX(shown);
+                            v.setRotation(shown / w * 10f);
+                            v.setAlpha(1f - Math.min(0.55f, Math.abs(shown) / (w * 1.4f)));
                         }
                         return true;
                     }
@@ -404,8 +447,17 @@ public final class PlayerPanel extends FrameLayout {
                         }
                         float w = v.getWidth();
                         boolean go = up && (Math.abs(dx) > w * 0.28f || (Math.abs(vx) > 1100f && Math.signum(vx) == Math.signum(dx)));
-                        if (go) commitSwipe(v, dx < 0);
-                        else springBack(v);
+                        boolean next = dx < 0;
+                        MediaController mc = Pb.get();
+                        if (go && !next && mc != null && mc.getCurrentPosition() > 3000) {
+                            mc.seekTo(0);       // "previous" after 3 s only restarts the song, like every player
+                            Ui.tap(v);
+                            springBack(v);
+                        } else if (go && canGo(next)) {
+                            commitSwipe(v, next);
+                        } else {
+                            springBack(v);
+                        }
                         return true;
                     }
                     default:
@@ -413,6 +465,12 @@ public final class PlayerPanel extends FrameLayout {
                 }
             }
         });
+    }
+
+    private boolean canGo(boolean next) {
+        MediaController m = Pb.get();
+        if (m == null) return false;
+        return next ? m.hasNextMediaItem() : (m.hasPreviousMediaItem() || m.getCurrentPosition() > 3000);
     }
 
     private void togglePlay(View v) {

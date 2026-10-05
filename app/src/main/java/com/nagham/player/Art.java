@@ -97,6 +97,14 @@ public final class Art {
         if (key.equals(iv.getTag(R.id.tag_art)) && iv.getTag(R.id.tag_art_ok) != null) return;
         iv.setTag(R.id.tag_art, key);
         iv.setTag(R.id.tag_art_ok, null);
+        if (uri != null) {
+            Bitmap cached = CACHE.get(key + "@" + px);
+            if (cached != null) {
+                show(iv, cached, px);
+                iv.setTag(R.id.tag_art_ok, Boolean.TRUE);
+                return;
+            }
+        }
         show(iv, null, px);
         if (uri == null) return;
         fetch(c, uri, px, b -> {

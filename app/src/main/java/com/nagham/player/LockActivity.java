@@ -44,6 +44,7 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
 
     @Override
     protected void onCreate(Bundle b) {
+        getDelegate().setLocalNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES);
         super.onCreate(b);
         if (Build.VERSION.SDK_INT >= 27) {
             setShowWhenLocked(true);
@@ -177,22 +178,39 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
     /** Drag upward; past the threshold the keyguard is dismissed (PIN / pattern / fingerprint if one is set). */
     private void setupSwipe(View root) {
         final float[] y0 = {0};
+        final android.view.VelocityTracker[] vt = new android.view.VelocityTracker[1];
         root.setOnTouchListener((v, e) -> {
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     y0[0] = e.getRawY();
+                    if (vt[0] != null) vt[0].recycle();
+                    vt[0] = android.view.VelocityTracker.obtain();
+                    vt[0].addMovement(e);
                     return true;
                 case MotionEvent.ACTION_MOVE: {
+                    if (vt[0] == null) return true;
+                    vt[0].addMovement(e);
                     float dy = Math.min(0, e.getRawY() - y0[0]);
                     content.setTranslationY(dy * 0.7f);
                     content.setAlpha(Math.max(0.3f, 1f + dy / Ui.dp(this, 560)));
                     return true;
                 }
                 case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    if (e.getRawY() - y0[0] < -Ui.dp(this, 140)) unlock();
+                case MotionEvent.ACTION_CANCEL: {
+                    float vy = 0f;
+                    if (vt[0] != null) {
+                        vt[0].addMovement(e);
+                        vt[0].computeCurrentVelocity(1000);
+                        vy = vt[0].getYVelocity();
+                        vt[0].recycle();
+                        vt[0] = null;
+                    }
+                    boolean up = e.getActionMasked() == MotionEvent.ACTION_UP;
+                    float dist = e.getRawY() - y0[0];
+                    if (up && (dist < -Ui.dp(this, 140) || (vy < -1400f && dist < -Ui.dp(this, 40)))) unlock();
                     else reset();
                     return true;
+                }
                 default:
                     return true;
             }

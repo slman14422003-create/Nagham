@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         srl = new androidx.swiperefreshlayout.widget.SwipeRefreshLayout(this);
         srl.addView(rv, new ViewGroup.LayoutParams(-1, -1));
         srl.setProgressBackgroundColorSchemeColor(Ui.color(this, R.color.surface_high));
-        srl.setColorSchemeColors(0xFFFFFFFF);
+        srl.setColorSchemeColors(Ui.color(this, R.color.accent_text));
         srl.setOnRefreshListener(() -> Library.scan(this, () -> {
             srl.setRefreshing(false);
             refresh();
@@ -213,6 +213,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         panel = new PlayerPanel(this, new PlayerPanel.Host() {
             @Override
             public void onCollapsed() {
+                setMainLayer(false);
                 mainCol.setScaleX(1f);
                 mainCol.setScaleY(1f);
                 mainCol.setAlpha(1f);
@@ -220,6 +221,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
 
             @Override
             public void onProgress(float f) {
+                setMainLayer(f > 0.001f && f < 0.999f);
                 mainCol.setScaleX(1f - 0.05f * f);
                 mainCol.setScaleY(1f - 0.05f * f);
                 mainCol.setAlpha(1f - 0.5f * f);
@@ -244,6 +246,15 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         setTab(0);
     }
 
+    private boolean mainLayer;
+
+    /** Scale + fade of the whole home screen is smooth only when it is drawn once into a layer. */
+    private void setMainLayer(boolean on) {
+        if (on == mainLayer || mainCol == null) return;
+        mainLayer = on;
+        mainCol.setLayerType(on ? View.LAYER_TYPE_HARDWARE : View.LAYER_TYPE_NONE, null);
+    }
+
     private TextView segItem(final int i) {
         TextView t = new TextView(this);
         t.setGravity(Gravity.CENTER);
@@ -260,7 +271,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     private void styleSeg(TextView t, int labelRes, int count, boolean sel) {
         String label = getString(labelRes);
         SpannableString s = new SpannableString(label + "  " + count);
-        s.setSpan(new ForegroundColorSpan(sel ? 0xFF707070 : Ui.color(this, R.color.text_hint)), label.length(), s.length(), 0);
+        s.setSpan(new ForegroundColorSpan(sel ? Ui.color(this, R.color.seg_count_sel) : Ui.color(this, R.color.text_hint)), label.length(), s.length(), 0);
         t.setText(s);
         t.setTextColor(Ui.color(this, sel ? R.color.on_accent : R.color.text_secondary));
         t.setTypeface(sel ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
