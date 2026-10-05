@@ -4,13 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.SystemClock;
-import android.view.WindowManager;
 import androidx.media3.session.MediaController;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -148,20 +143,7 @@ public final class Menus {
     }
 
     public static void ask(Context c, int titleRes, String initial, final Consumer<String> ok) {
-        final EditText e = Ui.edit(c, c.getString(R.string.playlist_name), initial);
-        LinearLayout box = new LinearLayout(c);
-        box.setPadding(Ui.dp(c, 10), Ui.dp(c, 8), Ui.dp(c, 10), 0);
-        box.addView(e);
-        AlertDialog d = new AlertDialog.Builder(c, R.style.AppDialog)
-                .setTitle(titleRes).setView(box)
-                .setPositiveButton(R.string.save, (x, w) -> {
-                    String s = e.getText().toString().trim();
-                    if (!s.isEmpty()) ok.accept(s);
-                })
-                .setNegativeButton(R.string.cancel, null).create();
-        d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-        d.show();
-        e.setSelection(e.getText().length());
+        Dlg.input(c, titleRes, initial, R.string.save, ok);
     }
 
     public static void openLock(Activity a) {

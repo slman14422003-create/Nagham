@@ -18,10 +18,10 @@ import androidx.media3.session.SessionToken;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /** App-wide playback client: one MediaController connected to PlayerService. */
 public final class Pb {
@@ -30,7 +30,7 @@ public final class Pb {
 
     private static MediaController ctl;
     private static ListenableFuture<MediaController> fut;
-    private static final Set<Player.Listener> LS = new HashSet<>();
+    private static final Set<Player.Listener> LS = new CopyOnWriteArraySet<>();
     private static final List<Runnable> WAIT = new ArrayList<>();
     private static final Handler H = new Handler(Looper.getMainLooper());
     private static Runnable sleepTask;
@@ -58,12 +58,17 @@ public final class Pb {
                 for (Runnable r : w) r.run();
             } catch (Exception e) {
                 fut = null;
+                ctl = null;
             }
         }, ContextCompat.getMainExecutor(app));
     }
 
     @Nullable
     public static MediaController get() {
+        if (ctl != null && !ctl.isConnected()) {
+            ctl = null;
+            fut = null;
+        }
         return ctl;
     }
 

@@ -44,6 +44,17 @@
         <item name="android:windowExitAnimation">@anim/dlg_out</item>
     </style>
 
+    <!-- Centered card dialog (rename, confirm): same card, border and pills as the sheets -->
+    <style name="AppCard" parent="Theme.AppCompat.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimAmount">0.62</item>
+        <item name="android:windowAnimationStyle">@style/DialogAnim</item>
+        <item name="android:windowElevation">0dp</item>
+        <item name="android:windowMinWidthMinor">92%</item>
+        <item name="android:windowMinWidthMajor">60%</item>
+    </style>
+
     <!-- Bottom sheet (song menu, playlists, sort, timer) -->
     <style name="AppSheet" parent="Theme.AppCompat.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
@@ -71,7 +82,7 @@
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/bg</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
-        <item name="windowSplashScreenIconBackgroundColor">#FF1C1560</item>
+        <item name="windowSplashScreenIconBackgroundColor">#FF020517</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 </resources>

@@ -40,6 +40,7 @@ public final class Sheet {
     }
 
     public static void show(final Context c, CharSequence title, final Supplier<List<Item>> source) {
+        if (Dlg.dead(c)) return;
         final Dialog d = new Dialog(c, R.style.AppSheet);
         LinearLayout root = new LinearLayout(c);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -108,6 +109,7 @@ public final class Sheet {
             w.setGravity(Gravity.BOTTOM);
             w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         }
+        Dlg.bind(c, d, null);
         d.show();
     }
 

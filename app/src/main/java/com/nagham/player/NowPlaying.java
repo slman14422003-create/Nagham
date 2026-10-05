@@ -37,6 +37,8 @@ public final class NowPlaying implements Player.Listener {
     private final SeekBar seek;
     private final ImageButton play, shuffle, repeat;
     private boolean drag;
+    /** After letting go, ignore the player's old position until it has actually jumped (no flicker back). */
+    private long pendingSeek = -1, pendingUntil;
     private String lastArt = "\u0000";
     public ArtCb artCb;
     public Runnable onRefresh;
@@ -105,14 +107,35 @@ public final class NowPlaying implements Player.Listener {
             @Override
             public void onStartTrackingTouch(SeekBar s) {
                 drag = true;
+                pendingSeek = -1;
+                Ui.tap(s);
+                cur.setTextColor(Ui.color(c, R.color.accent_text));
+                cur.animate().scaleX(1.18f).scaleY(1.18f).setDuration(120).start();
+                s.animate().scaleY(1.35f).setDuration(120).start();
+                if (s.getParent() != null) s.getParent().requestDisallowInterceptTouchEvent(true);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar s) {
                 drag = false;
+                cur.setTextColor(Ui.color(c, R.color.text_secondary));
+                cur.animate().scaleX(1f).scaleY(1f).setDuration(160).start();
+                s.animate().scaleY(1f).setDuration(160).start();
                 MediaController m = Pb.get();
-                if (m != null) m.seekTo(s.getProgress());
+                if (m != null) {
+                    long to = s.getProgress();
+                    pendingSeek = to;
+                    pendingUntil = android.os.SystemClock.uptimeMillis() + 900;
+                    m.seekTo(to);
+                }
             }
+        });
+        // a bigger, forgiving touch area; the finger can wander off the bar vertically without losing the drag
+        seek.setOnTouchListener((v, e) -> {
+            if (e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN && v.getParent() != null) {
+                v.getParent().requestDisallowInterceptTouchEvent(true);
+            }
+            return false;
         });
         LinearLayout times = new LinearLayout(c);
         times.setPadding(Ui.dp(c, 8), 0, Ui.dp(c, 8), 0);
@@ -121,7 +144,7 @@ public final class NowPlaying implements Player.Listener {
         total.setGravity(Gravity.END);
         times.addView(cur, Ui.weight(1));
         times.addView(total, Ui.weight(1));
-        seekBlock.addView(seek, Ui.lp(-1, Ui.dp(c, 28)));
+        seekBlock.addView(seek, Ui.lp(-1, Ui.dp(c, 44)));
         seekBlock.addView(times, Ui.lp(-1, -2));
 
         controls = new LinearLayout(c);
@@ -237,8 +260,14 @@ public final class NowPlaying implements Player.Listener {
             seek.setMax((int) d);
             total.setText(Fmt.time(d));
         }
+        seek.setEnabled(d > 0);
         if (!drag) {
             long p = m.getCurrentPosition();
+            if (pendingSeek >= 0) {
+                boolean landed = Math.abs(p - pendingSeek) < 1200;
+                if (!landed && android.os.SystemClock.uptimeMillis() < pendingUntil) return;
+                pendingSeek = -1;
+            }
             seek.setProgress((int) p, true);
             long sec = p / 1000;
             if (sec != lastSec) {

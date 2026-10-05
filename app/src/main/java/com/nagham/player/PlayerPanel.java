@@ -275,7 +275,7 @@ public final class PlayerPanel extends FrameLayout {
     private boolean hit(View v, MotionEvent e) {
         int[] l = new int[2];
         v.getLocationOnScreen(l);
-        int pad = Ui.dp(act, 10);
+        int pad = Ui.dp(act, 14);
         return e.getRawX() >= l[0] && e.getRawX() <= l[0] + v.getWidth()
                 && e.getRawY() >= l[1] - pad && e.getRawY() <= l[1] + v.getHeight() + pad;
     }
@@ -293,7 +293,7 @@ public final class PlayerPanel extends FrameLayout {
             case MotionEvent.ACTION_MOVE:
                 if (!tracking && expanded && !onSeek) {
                     float dy = e.getRawY() - downY, dx = e.getRawX() - downX;
-                    if (dy > slop && dy > Math.abs(dx) * 1.2f) {
+                    if (dy > slop && dy > Math.abs(dx) * 1.1f) {
                         startTracking(e);
                         return true;
                     }
@@ -308,7 +308,7 @@ public final class PlayerPanel extends FrameLayout {
     private void startTracking(MotionEvent e) {
         tracking = true;
         if (anim != null) anim.cancel();
-        startRaw = downY;
+        startRaw = e.getRawY() - getTranslationY();
         vt = VelocityTracker.obtain();
         vt.addMovement(e);
     }
@@ -325,7 +325,7 @@ public final class PlayerPanel extends FrameLayout {
             case MotionEvent.ACTION_MOVE:
                 if (!tracking) {
                     float dy = e.getRawY() - downY, dx = e.getRawX() - downX;
-                    if (expanded && dy > slop && dy > Math.abs(dx) * 1.2f) startTracking(e);
+                    if (expanded && dy > slop && dy > Math.abs(dx) * 1.1f) startTracking(e);
                     return true;
                 }
                 vt.addMovement(e);

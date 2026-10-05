@@ -10,7 +10,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -146,13 +145,11 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
                         onResume();
                     })));
             l.add(Sheet.item(R.drawable.ic_delete, getString(R.string.delete), false, false, () ->
-                    new AlertDialog.Builder(this, R.style.AppDialog)
-                            .setMessage(getString(R.string.confirm_delete_playlist, p.name))
-                            .setPositiveButton(R.string.delete, (d, w) -> {
+                    Dlg.confirm(this, getString(R.string.delete),
+                            getString(R.string.confirm_delete_playlist, p.name), R.string.delete, true, () -> {
                                 Store.delete(this, pid);
                                 finish();
-                            })
-                            .setNegativeButton(R.string.cancel, null).show()));
+                            })));
             return l;
         });
     }

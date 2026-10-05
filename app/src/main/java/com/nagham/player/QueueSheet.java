@@ -42,6 +42,7 @@ public final class QueueSheet {
             Ui.toast(c, R.string.nothing_playing);
             return;
         }
+        if (Dlg.dead(c)) return;
         final Dialog d = new Dialog(c, R.style.AppSheet);
         final LinearLayout root = new LinearLayout(c);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -102,7 +103,8 @@ public final class QueueSheet {
         final LinearLayoutManager lm = new LinearLayoutManager(c);
         rv.setLayoutManager(lm);
         rv.setAdapter(ad);
-        rv.setHasFixedSize(true);
+        rv.setHasFixedSize(false);
+        ad.rv = rv;
         rv.setClipToPadding(false);
         rv.setPadding(0, 0, 0, Ui.dp(c, 12));
         rv.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -139,7 +141,7 @@ public final class QueueSheet {
             public void clearView(@NonNull RecyclerView r, @NonNull RecyclerView.ViewHolder vh) {
                 super.clearView(r, vh);
                 vh.itemView.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start();
-                ad.commitMove();
+                ad.endDrag();
             }
         });
         helper.attachToRecyclerView(rv);
@@ -159,7 +161,10 @@ public final class QueueSheet {
             }
         };
         Pb.add(pl);
-        d.setOnDismissListener(x -> Pb.remove(pl));
+        Dlg.bind(c, d, () -> {
+            Pb.remove(pl);
+            ad.dead = true;
+        });
 
         d.setContentView(root);
         Window w = d.getWindow();
@@ -194,10 +199,14 @@ public final class QueueSheet {
             count.setText(ctx.getResources().getQuantityString(R.plurals.songs_n, items.size(), items.size()));
         }
 
+        RecyclerView rv;
+        boolean dead, dragging;
+
         /** Local reorder while dragging; the player is told once, when the finger lifts. */
         boolean move(int a, int b) {
             if (a < 0 || b < 0 || a >= items.size() || b >= items.size()) return false;
             if (dragFrom < 0) dragFrom = a;
+            dragging = true;
             dragTo = b;
             items.add(b, items.remove(a));
             if (cur == a) cur = b;
@@ -207,27 +216,65 @@ public final class QueueSheet {
             return true;
         }
 
-        @SuppressLint("NotifyDataSetChanged")
-        void commitMove() {
-            if (dragFrom >= 0 && dragFrom != dragTo) {
-                m.moveMediaItem(dragFrom, dragTo);
-                cur = m.getCurrentMediaItemIndex();
-            }
+        /**
+         * Called when the finger lifts. It can arrive in the middle of RecyclerView's own layout pass, where
+         * notify*() throws (that crash is what threw people out of playback), so the work is posted, and the
+         * player gets one single moveMediaItem() call, never a rebuilt queue.
+         */
+        void endDrag() {
+            final int from = dragFrom, to = dragTo;
             dragFrom = dragTo = -1;
-            notifyDataSetChanged(); // refresh first / last corner shapes
+            dragging = false;
+            Runnable r = () -> {
+                if (dead) return;
+                try {
+                    if (from >= 0 && to >= 0 && from != to && from < m.getMediaItemCount() && to < m.getMediaItemCount()) {
+                        m.moveMediaItem(from, to);
+                    }
+                    cur = Math.max(0, Math.min(m.getCurrentMediaItemIndex(), items.size() - 1));
+                } catch (RuntimeException ignored) {
+                }
+                refreshEdges(from, to);
+            };
+            if (rv != null) rv.post(r);
+            else r.run();
         }
 
-        @SuppressLint("NotifyDataSetChanged")
-        void remove(int p) {
+        /** First / last rows have their own corner shape, and the highlighted row may have moved. */
+        void refreshEdges(int a, int b) {
+            int n = items.size();
+            if (n == 0) return;
+            int lo = Math.max(0, Math.min(a < 0 ? 0 : a, b < 0 ? 0 : b));
+            int hi = Math.min(n - 1, Math.max(a < 0 ? 0 : a, b < 0 ? 0 : b));
+            notifyItemRangeChanged(lo, hi - lo + 1);
+            notifyItemChanged(0);
+            notifyItemChanged(n - 1);
+            if (cur >= 0 && cur < n) notifyItemChanged(cur);
+        }
+
+        void remove(final int p) {
             if (p < 0 || p >= items.size()) return;
-            m.removeMediaItem(p);
+            final boolean wasCurrent = p == cur;
             items.remove(p);
-            cur = Math.min(m.getCurrentMediaItemIndex(), Math.max(0, items.size() - 1));
+            if (p < cur) cur--;
+            else if (wasCurrent) cur = Math.min(cur, Math.max(0, items.size() - 1));
+            notifyItemRemoved(p);
             updateCount();
-            notifyDataSetChanged();
+            Runnable r = () -> {
+                if (dead) return;
+                try {
+                    if (p < m.getMediaItemCount()) m.removeMediaItem(p);
+                    cur = Math.max(0, Math.min(m.getCurrentMediaItemIndex(), items.size() - 1));
+                } catch (RuntimeException ignored) {
+                }
+                refreshEdges(Math.max(0, p - 1), Math.min(items.size() - 1, p));
+            };
+            if (rv != null) rv.post(r);
+            else r.run();
         }
 
         void syncCurrent() {
+            if (dragging || dead) return;
             int old = cur;
             cur = m.getCurrentMediaItemIndex();
             if (old >= 0 && old < items.size()) notifyItemChanged(old);
@@ -235,6 +282,7 @@ public final class QueueSheet {
         }
 
         void syncPlaying() {
+            if (dragging || dead) return;
             playing = m.isPlaying();
             if (cur >= 0 && cur < items.size()) notifyItemChanged(cur);
         }
