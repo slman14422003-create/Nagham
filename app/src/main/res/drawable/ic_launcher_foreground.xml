@@ -1,41 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
 
-    <!-- soft 3D floor shadow -->
-    <path android:pathData="M29,84C38,77 68,76 83,83C87,85 87,88 82,90C66,96 39,95 29,89C26,87 26,85 29,84Z">
+    <!-- Soft contact shadow -->
+    <path android:pathData="M29,82C37,87 72,87 82,81C75,77 37,77 29,82Z" android:fillColor="#000000" android:fillAlpha="0.30"/>
+
+    <!-- Deep 3D extrusion -->
+    <path android:pathData="M29,77A11,8,0,1,0,51,77A11,8,0,1,0,29,77ZM58,70A11,8,0,1,0,80,70A11,8,0,1,0,58,70ZM47,38L53,36L53,73L47,75ZM76,31L82,29L82,67L76,69ZM47,36L82,29L82,41L47,48Z" android:fillColor="#120A3D"/>
+    <path android:pathData="M30,74A11,8,0,1,0,52,74A11,8,0,1,0,30,74ZM59,67A11,8,0,1,0,81,67A11,8,0,1,0,59,67ZM48,35L54,33L54,70L48,72ZM77,28L83,26L83,64L77,66ZM48,33L83,26L83,38L48,45Z" android:fillColor="#2A176D"/>
+
+    <!-- Main glass note -->
+    <path android:pathData="M29,72A11,8,0,1,0,51,72A11,8,0,1,0,29,72ZM58,65A11,8,0,1,0,80,65A11,8,0,1,0,58,65ZM47,33L53,31L53,68L47,70ZM76,26L82,24L82,62L76,64ZM47,31L82,24L82,36L47,43Z">
         <aapt:attr name="android:fillColor">
-            <gradient android:type="radial" android:centerX="56" android:centerY="85" android:gradientRadius="31">
-                <item android:offset="0" android:color="#B000061E"/>
-                <item android:offset="0.7" android:color="#5500061E"/>
-                <item android:offset="1" android:color="#0000061E"/>
+            <gradient android:type="linear" android:startX="30" android:startY="25" android:endX="82" android:endY="76">
+                <item android:offset="0" android:color="#FFFFFF"/>
+                <item android:offset="0.30" android:color="#F4F2FF"/>
+                <item android:offset="0.62" android:color="#B7C8FF"/>
+                <item android:offset="1" android:color="#6C6BFF"/>
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- deep extrusion -->
-    <path android:fillColor="#160B5B" android:pathData="M31,77C31,83 35,87 41,87C46,87 51,83 51,78V50L80,44V68C80,73 84,76 88,75C93,74 96,70 96,65C96,61 93,58 89,58C87,58 85,59 83,60V33L47,41V72C45,71 43,70 40,71C35,72 31,74 31,77Z"/>
-    <path android:fillColor="#24127A" android:pathData="M33,75C33,81 37,85 42,85C47,85 52,81 52,76V48L82,42V66C82,71 85,73 90,72C94,71 97,67 97,63C97,59 94,56 90,56C87,56 85,57 82,59V31L49,38V70C47,69 44,68 41,69C36,70 33,72 33,75Z"/>
+    <!-- Glass inner glow -->
+    <path android:pathData="M32,68A7.5,5.1,0,1,0,47,68A7.5,5.1,0,1,0,32,68ZM61,61A7.5,5.1,0,1,0,76,61A7.5,5.1,0,1,0,61,61ZM50,34L51.7,33.6L51.7,65L50,65.6ZM79,27L80.7,26.6L80.7,59L79,59.6Z" android:fillColor="#FFFFFF" android:fillAlpha="0.32"/>
 
-    <!-- main 3D note -->
-    <path android:pathData="M30,72C30,78 34,82 40,82C46,82 51,78 51,72V44L80,38V63C80,68 84,71 89,70C94,69 97,65 97,60C97,56 94,53 90,53C87,53 84,54 81,56V27L48,34V67C46,66 43,65 40,66C34,67 30,69 30,72Z">
-        <aapt:attr name="android:fillColor">
-            <gradient android:type="linear" android:startX="34" android:startY="30" android:endX="92" android:endY="82">
-                <item android:offset="0" android:color="#F9FCFF"/>
-                <item android:offset="0.28" android:color="#B9E6FF"/>
-                <item android:offset="0.58" android:color="#7E7BFF"/>
-                <item android:offset="1" android:color="#B14CFF"/>
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- glossy inner face -->
-    <path android:fillColor="#FFFFFF" android:fillAlpha="0.92" android:pathData="M50,36L78,30V34L50,40Z"/>
-    <path android:fillColor="#FFFFFF" android:fillAlpha="0.42" android:pathData="M50,41L54,40V65L50,66Z"/>
-    <path android:fillColor="#FFFFFF" android:fillAlpha="0.35" android:pathData="M82,57C84,55 87,54 90,55C92,56 93,58 93,60C93,61 92,62 91,63C91,59 88,57 82,57Z"/>
-    <path android:fillColor="#FFFFFF" android:fillAlpha="0.48" android:pathData="M34,71C36,68 40,67 43,68C45,69 46,71 45,73C44,71 41,70 38,71C36,71 35,72 34,73Z"/>
+    <!-- Signature highlights -->
+    <path android:pathData="M50,33L80,27L80,29L50,35Z" android:fillColor="#FFFFFF" android:fillAlpha="0.92"/>
+    <path android:pathData="M34,68C37,65 42,64 45,66C42,66 38,68 36,70Z" android:fillColor="#FFFFFF" android:fillAlpha="0.85"/>
+    <path android:pathData="M63,61C66,58 71,57 74,59C71,59 67,61 65,63Z" android:fillColor="#FFFFFF" android:fillAlpha="0.82"/>
+    <path android:pathData="M51,36L52,35.8L52,54L51,54Z" android:fillColor="#FFFFFF" android:fillAlpha="0.55"/>
 </vector>
