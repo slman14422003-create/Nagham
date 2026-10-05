@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@interpolator/emphasized_decel">
+    <translate android:duration="360" android:fromYDelta="100%p" android:toYDelta="0" />
+    <alpha android:duration="180" android:fromAlpha="0.5" android:toAlpha="1" />
+</set>
