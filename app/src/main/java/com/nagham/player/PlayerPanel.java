@@ -1,5 +1,6 @@
 package com.nagham.player;
 
+import android.content.Context;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
@@ -44,7 +45,7 @@ public final class PlayerPanel extends FrameLayout {
     private final Activity act;
     private final Host host;
     private final NowPlaying np;
-    private final ImageButton fav, timer;
+    private final ImageButton fav, timer, bt;
     private final LinearLayout col;
     private final int slop, maxRadius;
     private float collapsedY = 1000f, radius, downX, downY, startRaw;
@@ -124,18 +125,20 @@ public final class PlayerPanel extends FrameLayout {
         LinearLayout extras = new LinearLayout(d);
         extras.setGravity(Gravity.CENTER);
         timer = Ui.icon(d, R.drawable.ic_timer, R.string.sleep_timer, v -> Menus.sleep(a, this::refreshExtras));
+        bt = Ui.icon(d, R.drawable.ic_bluetooth, R.string.bt_title, v -> BtSheet.show(a));
         View[] ex = {
                 Ui.icon(d, R.drawable.ic_add, R.string.add_to_playlist, v -> {
                     long id = Pb.currentId();
                     if (id >= 0) Menus.addToPlaylist(a, id, () -> heart(false));
                 }),
                 Ui.icon(d, R.drawable.ic_list, R.string.up_next, v -> Menus.queue(a)),
+                bt,
                 timer};
         for (View v : ex) {
             LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) v.getLayoutParams();
             p.width = Ui.dp(a, 52);
             p.height = Ui.dp(a, 52);
-            p.setMargins(Ui.dp(a, 10), 0, Ui.dp(a, 10), 0);
+            p.setMargins(Ui.dp(a, 6), 0, Ui.dp(a, 6), 0);
             extras.addView(v);
         }
         LinearLayout.LayoutParams xp = Ui.lp(-1, -2);
@@ -293,6 +296,27 @@ public final class PlayerPanel extends FrameLayout {
     private void refreshExtras() {
         heart(false);
         Ui.tint(timer, Pb.sleepAt > 0 ? R.color.accent_text : R.color.text_primary);
+        Ui.tint(bt, BtAudio.connected(act) ? R.color.accent_text : R.color.text_primary);
+    }
+
+    private final android.media.AudioDeviceCallback btWatch = new android.media.AudioDeviceCallback() {
+        @Override
+        public void onAudioDevicesAdded(android.media.AudioDeviceInfo[] a) {
+            refreshExtras();
+        }
+
+        @Override
+        public void onAudioDevicesRemoved(android.media.AudioDeviceInfo[] r) {
+            refreshExtras();
+        }
+    };
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        android.media.AudioManager am = (android.media.AudioManager) act.getSystemService(Context.AUDIO_SERVICE);
+        if (am != null) am.registerAudioDeviceCallback(btWatch, new android.os.Handler(android.os.Looper.getMainLooper()));
+        refreshExtras();
     }
 
     private boolean hit(View v, MotionEvent e) {
@@ -507,6 +531,11 @@ public final class PlayerPanel extends FrameLayout {
 
     @Override
     protected void onDetachedFromWindow() {
+        try {
+            android.media.AudioManager am = (android.media.AudioManager) act.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) am.unregisterAudioDeviceCallback(btWatch);
+        } catch (Exception ignored) {
+        }
         np.stop();
         super.onDetachedFromWindow();
     }

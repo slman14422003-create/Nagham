@@ -86,6 +86,7 @@ public class PlayerService extends MediaSessionService {
     };
 
     private final SharedPreferences.OnSharedPreferenceChangeListener prefs = (sp, key) -> {
+        if ((BtAudio.K_PIN.equals(key) || BtAudio.K_OPT.equals(key))) BtAudio.refresh();
         if ("skip_silence".equals(key) && player != null) player.setSkipSilenceEnabled(sp.getBoolean(key, false));
         if ("lock_auto".equals(key) && player != null) OverlayAnchor.sync(this, player.getPlayWhenReady() && sp.getBoolean(key, true));
     };
@@ -100,6 +101,7 @@ public class PlayerService extends MediaSessionService {
                 .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build();
         player.setSkipSilenceEnabled(Store.flag(this, "skip_silence", false));
+        BtAudio.attach(this, player);
         player.addListener(new Player.Listener() {
             @Override
             public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
@@ -137,6 +139,7 @@ public class PlayerService extends MediaSessionService {
         } catch (Exception ignored) {
         }
         OverlayAnchor.sync(this, false);
+        BtAudio.detach();
         Store.prefs(this).unregisterOnSharedPreferenceChangeListener(prefs);
         h.removeCallbacksAndMessages(null);
         if (session != null) session.release();
