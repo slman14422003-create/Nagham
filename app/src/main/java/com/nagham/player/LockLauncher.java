@@ -29,12 +29,22 @@ public final class LockLauncher {
         return Perms.hasNotif(c) && Perms.hasFsi(c) && Perms.hasLockChannel(c);
     }
 
-    /** @return false when notifications or the "show over lock screen" access are missing. */
+    /**
+     * Two routes, both attempted: a direct start (allowed when Android permits background launches: Xiaomi "pop-up
+     * windows in background", or "display over other apps"), and a full-screen-intent notification (the standard
+     * route that also works on Samsung once "full screen notifications" is granted).
+     */
     public static boolean show(Context ctx) {
         Context c = ctx.getApplicationContext();
-        if (!Perms.hasNotif(c) || !Perms.hasFsi(c)) return false;
         Intent i = new Intent(c, LockActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        boolean started = false;
+        try {
+            c.startActivity(i);
+            started = true;
+        } catch (Exception ignored) {
+        }
+        if (!Perms.hasNotif(c) || !Perms.hasFsi(c)) return started;
         PendingIntent pi = PendingIntent.getActivity(c, 11, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification n = new NotificationCompat.Builder(c, App.CH_LOCK)
                 .setSmallIcon(R.drawable.ic_notif)
@@ -53,7 +63,7 @@ public final class LockLauncher {
             NotificationManagerCompat.from(c).notify(ID, n);
             return true;
         } catch (SecurityException e) {
-            return false;
+            return started;
         }
     }
 

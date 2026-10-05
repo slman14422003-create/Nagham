@@ -228,6 +228,13 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
             if (select) toggle(p);
             l.onClick(data.get(p), p);
         });
+        h.itemView.setOnLongClickListener(v -> {
+            int p = h.getBindingAdapterPosition() - off();
+            if (select || reorder || p < 0 || p >= data.size()) return false;
+            Ui.tap(v);
+            l.onMore(data.get(p), p);
+            return true;
+        });
         h.more.setOnClickListener(v -> {
             int p = h.getBindingAdapterPosition() - off();
             if (p >= 0 && p < data.size()) l.onMore(data.get(p), p);

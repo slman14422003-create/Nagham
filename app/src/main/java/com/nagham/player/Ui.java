@@ -87,7 +87,8 @@ public final class Ui {
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(content, (v, insets) -> {
             androidx.core.graphics.Insets bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()
                     | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
-            v.setPadding(l + bars.left, t + bars.top, r + bars.right, b + bars.bottom);
+            androidx.core.graphics.Insets ime = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime());
+            v.setPadding(l + bars.left, t + bars.top, r + bars.right, b + Math.max(bars.bottom, ime.bottom));
             return insets;
         });
         androidx.core.view.ViewCompat.requestApplyInsets(content);

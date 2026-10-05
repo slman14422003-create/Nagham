@@ -151,6 +151,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= 34) {
             addPerm(R.drawable.ic_lock, R.string.perm_fsi, R.string.perm_fsi_sub, Perms.hasFsi(this), v -> Perms.askFsi(this));
         }
+        addPerm(R.drawable.ic_list, R.string.perm_overlay, R.string.perm_overlay_sub, Perms.hasOverlay(this), v -> Perms.askOverlay(this));
         addPerm(R.drawable.ic_star, R.string.perm_chan, R.string.perm_chan_sub, Perms.hasLockChannel(this), v -> Perms.askLockChannel(this));
         addPerm(R.drawable.ic_shield, R.string.perm_battery, R.string.perm_battery_sub, Perms.hasBattery(this), v -> Perms.askBattery(this));
         if (Build.VERSION.SDK_INT >= 31) {

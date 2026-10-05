@@ -66,6 +66,15 @@ public final class Perms {
         start(a, i);
     }
 
+    /** "Display over other apps": exempts the app from Android's background-launch block (see OverlayAnchor). */
+    public static boolean hasOverlay(Context c) {
+        return Settings.canDrawOverlays(c);
+    }
+
+    public static void askOverlay(Activity a) {
+        start(a, new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + a.getPackageName())));
+    }
+
     public static boolean hasBattery(Context c) {
         PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
         return pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName());
@@ -76,7 +85,7 @@ public final class Perms {
     }
 
     public static boolean anyMissing(Context c) {
-        return !hasAudio(c) || !hasNotif(c) || !hasFsi(c) || !hasLockChannel(c) || !hasBt(c);
+        return !hasAudio(c) || !hasNotif(c) || !hasFsi(c) || !hasLockChannel(c) || !hasOverlay(c) || !hasBt(c);
     }
 
     /** Runtime permissions asked together on first launch. */

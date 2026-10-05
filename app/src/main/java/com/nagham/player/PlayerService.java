@@ -87,6 +87,7 @@ public class PlayerService extends MediaSessionService {
 
     private final SharedPreferences.OnSharedPreferenceChangeListener prefs = (sp, key) -> {
         if ("skip_silence".equals(key) && player != null) player.setSkipSilenceEnabled(sp.getBoolean(key, false));
+        if ("lock_auto".equals(key) && player != null) OverlayAnchor.sync(this, player.getPlayWhenReady() && sp.getBoolean(key, true));
     };
 
     @Override
@@ -99,6 +100,12 @@ public class PlayerService extends MediaSessionService {
                 .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build();
         player.setSkipSilenceEnabled(Store.flag(this, "skip_silence", false));
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
+                OverlayAnchor.sync(PlayerService.this, playWhenReady && Store.flag(PlayerService.this, "lock_auto", true));
+            }
+        });
         PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, PlayerActivity.class),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         session = new MediaSession.Builder(this, player).setSessionActivity(open).setBitmapLoader(new ArtLoader(this)).build();
@@ -129,6 +136,7 @@ public class PlayerService extends MediaSessionService {
             unregisterReceiver(screen);
         } catch (Exception ignored) {
         }
+        OverlayAnchor.sync(this, false);
         Store.prefs(this).unregisterOnSharedPreferenceChangeListener(prefs);
         h.removeCallbacksAndMessages(null);
         if (session != null) session.release();

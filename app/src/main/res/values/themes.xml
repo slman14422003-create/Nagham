@@ -60,9 +60,18 @@
         <item name="android:windowExitAnimation">@anim/sheet_out</item>
     </style>
 
+    <!-- Player screen: translucent so the screen underneath shows while you drag the player down -->
+    <style name="Theme.App.Player" parent="AppTheme">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/bg</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="windowSplashScreenIconBackgroundColor">#FF1C1560</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 </resources>

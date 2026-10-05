@@ -40,6 +40,9 @@ public final class NowPlaying implements Player.Listener {
     private String lastArt = "\u0000";
     public ArtCb artCb;
     public Runnable onRefresh;
+    /** Set while the cover is being swiped, so the track-change pop does not fight the swipe animation. */
+    public boolean quietArt;
+    private float coverTarget = -1f;
     private final Handler h = new Handler(Looper.getMainLooper());
     private boolean started, ticking;
     private Boolean lastPlaying;
@@ -164,7 +167,7 @@ public final class NowPlaying implements Player.Listener {
     public void start() {
         started = true;
         Pb.add(this);
-        refresh();
+        Pb.whenReady(this::refresh);
     }
 
     public void stop() {
@@ -190,6 +193,16 @@ public final class NowPlaying implements Player.Listener {
         play.setImageResource(playing ? R.drawable.ic_pause_fill : R.drawable.ic_play_fill);
         if (lastPlaying != null && lastPlaying != playing) Ui.pop(play);
         lastPlaying = playing;
+        float tgt = playing ? 1f : 0.9f;
+        if (coverTarget < 0f) {
+            coverTarget = tgt;
+            art.setScaleX(tgt);
+            art.setScaleY(tgt);
+        } else if (tgt != coverTarget) {
+            coverTarget = tgt;
+            art.animate().scaleX(tgt).scaleY(tgt).setDuration(320)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+        }
         Ui.tint(shuffle, m.getShuffleModeEnabled() ? R.color.accent_text : R.color.text_secondary);
         int rm = m.getRepeatMode();
         repeat.setImageResource(rm == Player.REPEAT_MODE_ONE ? R.drawable.ic_repeat_one : R.drawable.ic_repeat);
@@ -200,10 +213,12 @@ public final class NowPlaying implements Player.Listener {
             boolean first = "\u0000".equals(lastArt);
             lastArt = key;
             Art.load(c, au, art, artPx);
-            if (!first) {
+            if (!first && !quietArt) {
                 art.setAlpha(0.35f);
-                art.animate().alpha(1f).setDuration(350).start();
-                Ui.pop(art);
+                art.setScaleX(coverTarget * 0.85f);
+                art.setScaleY(coverTarget * 0.85f);
+                art.animate().alpha(1f).scaleX(coverTarget).scaleY(coverTarget).setDuration(380)
+                        .setInterpolator(new android.view.animation.OvershootInterpolator(1.6f)).start();
             }
             if (artCb != null) artCb.onArt(au);
         }

@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Locale;
 
 /** Home: header, segmented Songs / Playlists, scrolling list with play-all header, permission banner, mini player. */
-public class MainActivity extends AppCompatActivity implements TrackAdapter.Listener {
+public class MainActivity extends AppCompatActivity implements TrackAdapter.Listener, FullBleed {
     private TrackAdapter songs;
     private final PlaylistAdapter lists = new PlaylistAdapter();
     private RecyclerView rv;
@@ -43,6 +43,10 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     private View actions, banner;
     private EditText search;
     private MiniPlayer mini;
+    private PlayerPanel panel;
+    private LinearLayout mainCol;
+    private androidx.swiperefreshlayout.widget.SwipeRefreshLayout srl;
+    private androidx.activity.OnBackPressedCallback backCb;
     private int tab = 0;
     private boolean animateNext = true;
     private String query = "";
@@ -160,7 +164,15 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         if (ia instanceof androidx.recyclerview.widget.SimpleItemAnimator) {
             ((androidx.recyclerview.widget.SimpleItemAnimator) ia).setSupportsChangeAnimations(false);
         }
-        body.addView(rv, new FrameLayout.LayoutParams(-1, -1));
+        srl = new androidx.swiperefreshlayout.widget.SwipeRefreshLayout(this);
+        srl.addView(rv, new ViewGroup.LayoutParams(-1, -1));
+        srl.setProgressBackgroundColorSchemeColor(Ui.color(this, R.color.surface_high));
+        srl.setColorSchemeColors(0xFFFFFFFF);
+        srl.setOnRefreshListener(() -> Library.scan(this, () -> {
+            srl.setRefreshing(false);
+            refresh();
+        }));
+        body.addView(srl, new FrameLayout.LayoutParams(-1, -1));
         skeleton = Ui.skeleton(this);
         skeleton.setVisibility(View.GONE);
         body.addView(skeleton, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
@@ -192,7 +204,43 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
 
         mini = new MiniPlayer(this);
         root.addView(mini);
-        setContentView(root);
+        mainCol = root;
+
+        // the full player lives on top of the home screen and follows the finger (see PlayerPanel)
+        FrameLayout stage = new FrameLayout(this);
+        stage.setBackgroundColor(Ui.color(this, R.color.bg));
+        stage.addView(root, new FrameLayout.LayoutParams(-1, -1));
+        panel = new PlayerPanel(this, new PlayerPanel.Host() {
+            @Override
+            public void onCollapsed() {
+                mainCol.setScaleX(1f);
+                mainCol.setScaleY(1f);
+                mainCol.setAlpha(1f);
+            }
+
+            @Override
+            public void onProgress(float f) {
+                mainCol.setScaleX(1f - 0.05f * f);
+                mainCol.setScaleY(1f - 0.05f * f);
+                mainCol.setAlpha(1f - 0.5f * f);
+            }
+
+            @Override
+            public void onState(boolean expanded) {
+                backCb.setEnabled(expanded);
+            }
+        });
+        stage.addView(panel, new FrameLayout.LayoutParams(-1, -1));
+        mini.setPanel(panel);
+        setContentView(stage);
+        Ui.edgeToEdge(this, root);
+        backCb = new androidx.activity.OnBackPressedCallback(false) {
+            @Override
+            public void handleOnBackPressed() {
+                panel.collapse(true);
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, backCb);
         setTab(0);
     }
 
@@ -288,6 +336,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
             emptyBox.setVisibility(View.GONE);
         }
         banner.setVisibility(Perms.anyMissing(this) ? View.VISIBLE : View.GONE);
+        srl.setEnabled(tab == 0 && audio);
     }
 
     @Override
@@ -296,6 +345,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         Pb.connect(this);
         Pb.add(current);
         mini.start();
+        panel.onHostStart();
     }
 
     @Override
@@ -309,6 +359,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     protected void onStop() {
         Pb.remove(current);
         mini.stop();
+        panel.onHostStop();
         super.onStop();
     }
 

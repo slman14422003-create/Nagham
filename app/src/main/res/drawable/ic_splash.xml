@@ -1,12 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="240dp"
-    android:height="240dp"
-    android:viewportWidth="240"
-    android:viewportHeight="240">
-    <group android:scaleX="5" android:scaleY="5" android:translateX="60" android:translateY="60">
-        <path android:pathData="M9,18V5l12,-2v13" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
-        <path android:pathData="M3,18a3,3 0 1,0 6,0a3,3 0 1,0 -6,0" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
-        <path android:pathData="M15,16a3,3 0 1,0 6,0a3,3 0 1,0 -6,0" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
-    </group>
-</vector>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>

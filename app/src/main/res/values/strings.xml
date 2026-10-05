@@ -128,6 +128,11 @@
     <string name="perm_chan">Lock-screen notification category</string>
     <string name="perm_chan_sub">Keep it on “Urgent / pop on screen” and allow floating and lock-screen display</string>
 
+    <string name="playback_speed">Playback speed</string>
+    <string name="sleep_left">Sleep timer · %d min left</string>
+    <string name="perm_overlay">Display over other apps</string>
+    <string name="perm_overlay_sub">Lets the lock-screen player open itself when Android would otherwise block it</string>
+
     <string-array name="fmt_subs">
         <item>.mp3</item>
         <item>.flac — lossless</item>

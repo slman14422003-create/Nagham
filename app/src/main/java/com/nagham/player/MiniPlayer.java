@@ -27,6 +27,7 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
     private final ProgressBar bar;
     private String lastArt = "\u0000";
     private final Handler h = new Handler(Looper.getMainLooper());
+    private PlayerPanel panel;
     private boolean started, ticking;
     private final Runnable tick = new Runnable() {
         @Override
@@ -41,6 +42,10 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
             schedule();
         }
     };
+
+    public void setPanel(PlayerPanel p) {
+        panel = p;
+    }
 
     private void schedule() {
         MediaController m = Pb.get();
@@ -101,50 +106,90 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
 
         setClickable(true);
         setContentDescription(c.getString(R.string.now_playing));
-        final android.view.GestureDetector gd = new android.view.GestureDetector(c, new android.view.GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onDown(android.view.MotionEvent e) {
-                return true;
-            }
+        final int slop = android.view.ViewConfiguration.get(c).getScaledTouchSlop();
+        setOnTouchListener(new OnTouchListener() {
+            float x0, y0;
+            boolean vertical, horizontal;
+            android.view.VelocityTracker vt;
 
             @Override
-            public boolean onSingleTapUp(android.view.MotionEvent e) {
-                c.startActivity(new Intent(c, PlayerActivity.class));
-                return true;
-            }
-
-            @Override
-            public boolean onFling(android.view.MotionEvent a, android.view.MotionEvent b, float vx, float vy) {
-                MediaController m = Pb.get();
-                if (m == null) return false;
-                if (Math.abs(vx) > Math.abs(vy) && Math.abs(vx) > 900) {
-                    boolean ltr = getLayoutDirection() == View.LAYOUT_DIRECTION_LTR;
-                    if ((vx < 0) == ltr) m.seekToNext();
-                    else m.seekToPrevious();
-                    setTranslationX(Math.signum(vx) * Ui.dp(c, 20));
-                    animate().translationX(0f).setDuration(300)
-                            .setInterpolator(new android.view.animation.OvershootInterpolator(2f)).start();
-                    return true;
+            public boolean onTouch(View v, android.view.MotionEvent e) {
+                switch (e.getActionMasked()) {
+                    case android.view.MotionEvent.ACTION_DOWN:
+                        setPressed(true);
+                        x0 = e.getRawX();
+                        y0 = e.getRawY();
+                        vertical = horizontal = false;
+                        if (vt != null) vt.recycle();
+                        vt = android.view.VelocityTracker.obtain();
+                        vt.addMovement(e);
+                        return true;
+                    case android.view.MotionEvent.ACTION_MOVE: {
+                        if (vt == null) return false;
+                        vt.addMovement(e);
+                        float dx = e.getRawX() - x0, dy = e.getRawY() - y0;
+                        if (!vertical && !horizontal) {
+                            if (panel != null && dy < 0 && Math.abs(dy) > slop && Math.abs(dy) > Math.abs(dx)) {
+                                vertical = true;
+                                setPressed(false);
+                                getParent().requestDisallowInterceptTouchEvent(true);
+                                panel.setCollapsedY(getTop());
+                                panel.beginDrag();
+                            } else if (Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy)) {
+                                horizontal = true;
+                                setPressed(false);
+                                getParent().requestDisallowInterceptTouchEvent(true);
+                            }
+                        }
+                        if (vertical) panel.dragUp(-dy);
+                        else if (horizontal) setTranslationX(dx * 0.6f);
+                        return true;
+                    }
+                    case android.view.MotionEvent.ACTION_UP:
+                    case android.view.MotionEvent.ACTION_CANCEL: {
+                        setPressed(false);
+                        if (vt == null) return false;
+                        vt.addMovement(e);
+                        vt.computeCurrentVelocity(1000);
+                        float vx = vt.getXVelocity(), vy = vt.getYVelocity();
+                        vt.recycle();
+                        vt = null;
+                        boolean up = e.getActionMasked() == android.view.MotionEvent.ACTION_UP;
+                        float dx = e.getRawX() - x0;
+                        if (vertical) {
+                            panel.endDrag(up ? vy : 0f);
+                        } else if (horizontal) {
+                            boolean go = up && (Math.abs(dx) > Ui.dp(c, 70) || Math.abs(vx) > 900f);
+                            if (go) {
+                                MediaController m = Pb.get();
+                                boolean ltr = getLayoutDirection() == View.LAYOUT_DIRECTION_LTR;
+                                if (m != null) {
+                                    if ((dx < 0) == ltr) m.seekToNext();
+                                    else m.seekToPrevious();
+                                }
+                                Ui.tap(MiniPlayer.this);
+                            }
+                            animate().translationX(0f).setDuration(300)
+                                    .setInterpolator(new android.view.animation.OvershootInterpolator(2f)).start();
+                        } else if (up && panel != null) {
+                            panel.setCollapsedY(getTop());
+                            panel.expand(true);
+                        } else if (up) {
+                            c.startActivity(new Intent(c, PlayerActivity.class));
+                        }
+                        return true;
+                    }
+                    default:
+                        return false;
                 }
-                if (vy < -900) {
-                    c.startActivity(new Intent(c, PlayerActivity.class));
-                    return true;
-                }
-                return false;
             }
-        });
-        setOnTouchListener((v, e) -> {
-            int a = e.getActionMasked();
-            if (a == android.view.MotionEvent.ACTION_DOWN) setPressed(true);
-            else if (a == android.view.MotionEvent.ACTION_UP || a == android.view.MotionEvent.ACTION_CANCEL) setPressed(false);
-            return gd.onTouchEvent(e);
         });
     }
 
     public void start() {
         started = true;
         Pb.add(this);
-        refresh();
+        Pb.whenReady(this::refresh);
     }
 
     public void stop() {

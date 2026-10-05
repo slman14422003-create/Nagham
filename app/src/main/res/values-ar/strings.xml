@@ -132,6 +132,11 @@
     <string name="perm_chan">فئة إشعار شاشة القفل</string>
     <string name="perm_chan_sub">أبقِها «عاجل / منبثق على الشاشة» واسمح بالإشعارات العائمة والعرض على القفل</string>
 
+    <string name="playback_speed">سرعة التشغيل</string>
+    <string name="sleep_left">مؤقت النوم · باقي %d دقيقة</string>
+    <string name="perm_overlay">العرض فوق التطبيقات الأخرى</string>
+    <string name="perm_overlay_sub">يسمح لمشغّل شاشة القفل بفتح نفسه عندما يمنعه أندرويد</string>
+
     <string-array name="fmt_subs">
         <item>.mp3</item>
         <item>.flac — جودة دون فقدان</item>

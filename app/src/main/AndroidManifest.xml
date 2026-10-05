@@ -21,6 +21,9 @@
     <!-- Bluetooth headset / car buttons and metadata (runtime permission on Android 12+) -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <!-- Lets the lock-screen player open itself when Android would block a background launch (user-granted) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <!-- Keeps playback alive on aggressive battery managers (optional, user-granted) -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
@@ -45,7 +48,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".PlayerActivity" android:exported="false" />
+        <activity
+            android:name=".PlayerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App.Player" />
         <activity android:name=".PlaylistActivity" android:exported="false" />
         <activity android:name=".PickSongsActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".SettingsActivity" android:exported="false" />
