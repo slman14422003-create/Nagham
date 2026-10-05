@@ -1,34 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <path android:pathData="M0,0H108V108H0Z">
-        <aapt:attr name="android:fillColor">
-            <gradient android:type="linear" android:startX="10" android:startY="0" android:endX="98" android:endY="108">
-                <item android:offset="0" android:color="#21115F"/>
-                <item android:offset="0.48" android:color="#4B27C9"/>
-                <item android:offset="1" android:color="#071B4A"/>
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path android:pathData="M0,0H108V108H0Z">
-        <aapt:attr name="android:fillColor">
-            <gradient android:type="radial" android:centerX="30" android:centerY="22" android:gradientRadius="66">
-                <item android:offset="0" android:color="#66B39CFF"/>
-                <item android:offset="0.55" android:color="#1A9B78FF"/>
-                <item android:offset="1" android:color="#00000000"/>
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path android:pathData="M0,108H108V54C86,66 69,91 0,108Z">
-        <aapt:attr name="android:fillColor">
-            <gradient android:type="linear" android:startX="15" android:startY="108" android:endX="100" android:endY="54">
-                <item android:offset="0" android:color="#0013D7FF"/>
-                <item android:offset="0.72" android:color="#3519BFFF"/>
-                <item android:offset="1" android:color="#6A39FFFF"/>
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path android:pathData="M-4,24C25,7 57,6 112,21L112,0L-4,0Z" android:fillColor="#FFFFFF" android:fillAlpha="0.045"/>
-</vector>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:type="linear" android:angle="315" android:startColor="#071B45" android:centerColor="#1738B8" android:endColor="#5A16D6" />
+</shape>
