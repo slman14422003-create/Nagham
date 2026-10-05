@@ -2,7 +2,7 @@
 <ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/ripple_on_accent">
     <item>
         <shape android:shape="oval">
-            <solid android:color="@color/pill_primary" />
+            <solid android:color="?attr/nAccent" />
         </shape>
     </item>
 </ripple>

@@ -103,6 +103,7 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
         body.addView(empty, new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER));
         root.addView(body, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
+        getWindow().setBackgroundDrawable(Ui.glow(this));
     }
 
     @Override

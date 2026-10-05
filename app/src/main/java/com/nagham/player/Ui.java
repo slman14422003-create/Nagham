@@ -48,7 +48,10 @@ public final class Ui {
         android.content.res.Configuration cfg = new android.content.res.Configuration(c.getResources().getConfiguration());
         cfg.uiMode = (cfg.uiMode & ~android.content.res.Configuration.UI_MODE_NIGHT_MASK)
                 | android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        return new androidx.appcompat.view.ContextThemeWrapper(c.createConfigurationContext(cfg), R.style.AppTheme);
+        androidx.appcompat.view.ContextThemeWrapper w =
+                new androidx.appcompat.view.ContextThemeWrapper(c.createConfigurationContext(cfg), R.style.AppTheme);
+        Accent.apply(w.getTheme(), c);
+        return w;
     }
 
     public static int dp(Context c, int v) {
@@ -56,7 +59,35 @@ public final class Ui {
     }
 
     public static int color(Context c, int res) {
+        int attr = accentAttr(res);
+        if (attr != 0) {
+            android.util.TypedValue tv = new android.util.TypedValue();
+            if (c.getTheme().resolveAttribute(attr, tv, true) && tv.type >= android.util.TypedValue.TYPE_FIRST_COLOR_INT
+                    && tv.type <= android.util.TypedValue.TYPE_LAST_COLOR_INT) return tv.data;
+        }
         return ContextCompat.getColor(c, res);
+    }
+
+    /** The accent-related colors follow the chosen accent; everything else is a plain resource. */
+    private static int accentAttr(int res) {
+        if (res == R.color.accent || res == R.color.pill_primary) return R.attr.nAccent;
+        if (res == R.color.accent_text) return R.attr.nAccentText;
+        if (res == R.color.accent_soft) return R.attr.nAccentSoft;
+        if (res == R.color.on_accent) return R.attr.nOnAccent;
+        return 0;
+    }
+
+    /** Soft accent glow fading out below the top of the screen; used as the window background of main screens. */
+    public static android.graphics.drawable.Drawable glow(Context c) {
+        android.util.TypedValue tv = new android.util.TypedValue();
+        int g = 0x334477FF;
+        if (c.getTheme().resolveAttribute(R.attr.nAccentGlow, tv, true)) g = tv.data;
+        GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{g, g & 0x00FFFFFF});
+        android.graphics.drawable.LayerDrawable ld = new android.graphics.drawable.LayerDrawable(
+                new android.graphics.drawable.Drawable[]{new android.graphics.drawable.ColorDrawable(color(c, R.color.bg)), gd});
+        ld.setLayerGravity(1, Gravity.TOP | Gravity.FILL_HORIZONTAL);
+        ld.setLayerHeight(1, dp(c, 360));
+        return ld;
     }
 
     public static void press(Context c, View v) {
@@ -280,8 +311,9 @@ public final class Ui {
     }
 
     public static TextView section(Context c, int textRes) {
-        TextView t = text(c, c.getString(textRes), 14, R.color.text_secondary);
+        TextView t = text(c, c.getString(textRes), 14, R.color.accent_text);
         t.setTypeface(Typeface.DEFAULT_BOLD);
+        t.setLetterSpacing(0.04f);
         t.setPaddingRelative(dp(c, 26), dp(c, 22), dp(c, 26), dp(c, 8));
         return t;
     }

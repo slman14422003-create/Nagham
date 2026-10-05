@@ -17,6 +17,7 @@
     <!-- main capsule (play, selected tab, selected chip): dark pill with light text -->
     <color name="pill_primary">#0A0A0F</color>
     <color name="on_accent">#FFFFFF</color>
+    <color name="accent_glow">#1F2F5BE8</color>
     <color name="seg_count_sel">#A9A9B6</color>
     <color name="ripple">#1F000000</color>
     <color name="ripple_on_accent">#33FFFFFF</color>

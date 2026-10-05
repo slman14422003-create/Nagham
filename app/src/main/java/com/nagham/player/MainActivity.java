@@ -235,6 +235,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         stage.addView(panel, new FrameLayout.LayoutParams(-1, -1));
         mini.setPanel(panel);
         setContentView(stage);
+        getWindow().setBackgroundDrawable(Ui.glow(this));
         Ui.edgeToEdge(this, root);
         backCb = new androidx.activity.OnBackPressedCallback(false) {
             @Override
@@ -271,7 +272,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     private void styleSeg(TextView t, int labelRes, int count, boolean sel) {
         String label = getString(labelRes);
         SpannableString s = new SpannableString(label + "  " + count);
-        s.setSpan(new ForegroundColorSpan(sel ? Ui.color(this, R.color.seg_count_sel) : Ui.color(this, R.color.text_hint)), label.length(), s.length(), 0);
+        s.setSpan(new ForegroundColorSpan(sel ? ((Ui.color(this, R.color.on_accent) & 0x00FFFFFF) | 0xB3000000) : Ui.color(this, R.color.text_hint)), label.length(), s.length(), 0);
         t.setText(s);
         t.setTextColor(Ui.color(this, sel ? R.color.on_accent : R.color.text_secondary));
         t.setTypeface(sel ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);

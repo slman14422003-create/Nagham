@@ -148,4 +148,10 @@
         <item>.amr .awb</item>
         <item>.mka — Matroska</item>
     </string-array>
+    <string name="set_appearance">المظهر</string>
+    <string name="theme_mode">السمة</string>
+    <string name="theme_auto">تلقائي</string>
+    <string name="theme_light">نهاري</string>
+    <string name="theme_dark">ليلي</string>
+    <string name="accent_color">لون السمة</string>
 </resources>

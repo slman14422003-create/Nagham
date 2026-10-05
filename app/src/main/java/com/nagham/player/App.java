@@ -18,10 +18,27 @@ import androidx.core.view.WindowInsetsCompat;
  */
 public class App extends Application {
     public static final String CH_LOCK = "lock_player";
+    private static final java.util.List<java.lang.ref.WeakReference<Activity>> LIVE = new java.util.ArrayList<>();
+
+    /** Re-creates every open screen so a new accent shows everywhere, including the ones behind this one. */
+    public static void recreateAll() {
+        for (int i = LIVE.size() - 1; i >= 0; i--) {
+            Activity a = LIVE.get(i).get();
+            if (a == null || a.isFinishing() || a.isDestroyed()) {
+                LIVE.remove(i);
+                continue;
+            }
+            try {
+                a.recreate();
+            } catch (Exception ignored) {
+            }
+        }
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
+        Accent.applyMode(this);
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel ch = new NotificationChannel(CH_LOCK, getString(R.string.ch_lock), NotificationManager.IMPORTANCE_HIGH);
             ch.setDescription(getString(R.string.ch_lock_sub));
@@ -47,12 +64,23 @@ public class App extends Application {
                 ViewCompat.requestApplyInsets(content);
             }
 
-            @Override public void onActivityCreated(Activity a, Bundle b) { }
+            @Override
+            public void onActivityCreated(Activity a, Bundle b) {
+                // runs inside super.onCreate(), before the screen builds its views
+                Accent.apply(a.getTheme(), a);
+                LIVE.add(new java.lang.ref.WeakReference<>(a));
+            }
             @Override public void onActivityResumed(Activity a) { }
             @Override public void onActivityPaused(Activity a) { }
             @Override public void onActivityStopped(Activity a) { }
             @Override public void onActivitySaveInstanceState(Activity a, Bundle b) { }
-            @Override public void onActivityDestroyed(Activity a) { }
+            @Override
+            public void onActivityDestroyed(Activity a) {
+                for (int i = LIVE.size() - 1; i >= 0; i--) {
+                    Activity x = LIVE.get(i).get();
+                    if (x == null || x == a) LIVE.remove(i);
+                }
+            }
         });
     }
 }

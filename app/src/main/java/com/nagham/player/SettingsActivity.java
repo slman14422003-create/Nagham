@@ -4,8 +4,11 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,6 +20,101 @@ import java.util.List;
 public class SettingsActivity extends AppCompatActivity {
     private LinearLayout perms;
     private boolean dirty;
+    private final TextView[] modeBtns = new TextView[3];
+
+    /** Theme mode (auto / light / dark) and the accent color swatches. */
+    private View appearanceCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_card);
+        card.setPadding(Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16), Ui.dp(this, 16));
+
+        TextView t1 = Ui.text(this, getString(R.string.theme_mode), 15, R.color.text_secondary);
+        t1.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        card.addView(t1);
+        LinearLayout seg = new LinearLayout(this);
+        seg.setBackgroundResource(R.drawable.bg_segment);
+        seg.setPadding(Ui.dp(this, 4), Ui.dp(this, 4), Ui.dp(this, 4), Ui.dp(this, 4));
+        int[] labels = {R.string.theme_auto, R.string.theme_light, R.string.theme_dark};
+        for (int i = 0; i < 3; i++) {
+            final int m = i;
+            TextView b = Ui.text(this, getString(labels[i]), 15, R.color.text_secondary);
+            b.setGravity(android.view.Gravity.CENTER);
+            b.setMinHeight(Ui.dp(this, 44));
+            b.setOnClickListener(v -> {
+                if (Accent.mode(this) == m) return;
+                Ui.tap(v);
+                Accent.setMode(this, m);   // AppCompat re-creates the screens when day / night really changes
+                styleModes();
+            });
+            modeBtns[i] = b;
+            seg.addView(b, new LinearLayout.LayoutParams(0, -2, 1f));
+        }
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2);
+        sp.topMargin = Ui.dp(this, 10);
+        card.addView(seg, sp);
+        styleModes();
+
+        TextView t2 = Ui.text(this, getString(R.string.accent_color), 15, R.color.text_secondary);
+        t2.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
+        tp.topMargin = Ui.dp(this, 18);
+        card.addView(t2, tp);
+
+        boolean night = (getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        int sel = Accent.index(this);
+        for (int row = 0; row < 2; row++) {
+            LinearLayout r = new LinearLayout(this);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
+            rp.topMargin = Ui.dp(this, 12);
+            for (int k = 0; k < 4; k++) {
+                final int i = row * 4 + k;
+                FrameLayout cell = new FrameLayout(this);
+                View dot = new View(this);
+                android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+                g.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                g.setColor(Accent.SWATCH[i][night ? 1 : 0]);
+                if (i == sel) g.setStroke(Ui.dp(this, 3), Ui.color(this, R.color.text_primary));
+                else g.setStroke(Ui.dp(this, 1), Ui.color(this, R.color.stroke));
+                dot.setBackground(g);
+                int d = Ui.dp(this, 46);
+                cell.addView(dot, new FrameLayout.LayoutParams(d, d, android.view.Gravity.CENTER));
+                if (i == sel) {
+                    ImageView ck = new ImageView(this);
+                    ck.setImageResource(R.drawable.ic_check);
+                    ck.setColorFilter(0xFFFFFFFF);
+                    int p = Ui.dp(this, 12);
+                    ck.setPadding(p, p, p, p);
+                    cell.addView(ck, new FrameLayout.LayoutParams(d, d, android.view.Gravity.CENTER));
+                }
+                cell.setOnClickListener(v -> {
+                    if (Accent.index(this) == i) return;
+                    Ui.tap(v);
+                    Accent.set(this, i);
+                    App.recreateAll();
+                });
+                r.addView(cell, new LinearLayout.LayoutParams(0, Ui.dp(this, 50), 1f));
+            }
+            card.addView(r, rp);
+        }
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
+        cp.setMargins(Ui.dp(this, 14), 0, Ui.dp(this, 14), 0);
+        card.setLayoutParams(cp);
+        return card;
+    }
+
+    private void styleModes() {
+        int cur = Accent.mode(this);
+        for (int i = 0; i < 3; i++) {
+            TextView b = modeBtns[i];
+            boolean on = i == cur;
+            b.setTextColor(Ui.color(this, on ? R.color.on_accent : R.color.text_secondary));
+            b.setTypeface(on ? android.graphics.Typeface.DEFAULT_BOLD : android.graphics.Typeface.DEFAULT);
+            if (on) b.setBackgroundResource(R.drawable.bg_segment_sel);
+            else b.setBackground(null);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle b) {
@@ -32,6 +130,11 @@ public class SettingsActivity extends AppCompatActivity {
         sv.addView(col);
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
+        getWindow().setBackgroundDrawable(Ui.glow(this));
+
+        // ---- appearance
+        col.addView(Ui.section(this, R.string.set_appearance));
+        col.addView(appearanceCard());
 
         // ---- general
         col.addView(Ui.section(this, R.string.set_general));

@@ -9,7 +9,7 @@
     <item android:id="@android:id/progress">
         <clip>
             <shape android:shape="rectangle">
-                <solid android:color="@color/pill_primary" />
+                <solid android:color="?attr/nAccent" />
                 <corners android:radius="2dp" />
             </shape>
         </clip>

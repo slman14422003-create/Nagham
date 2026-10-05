@@ -144,4 +144,10 @@
         <item>.amr .awb</item>
         <item>.mka — Matroska</item>
     </string-array>
+    <string name="set_appearance">Appearance</string>
+    <string name="theme_mode">Theme</string>
+    <string name="theme_auto">Auto</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="accent_color">Accent color</string>
 </resources>
