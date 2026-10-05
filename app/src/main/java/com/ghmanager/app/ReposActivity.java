@@ -41,6 +41,7 @@ public class ReposActivity extends AppCompatActivity {
     private ListView listView;
     private View skeleton;
     private View refreshBtn;
+    private GhStatusCard statusCard;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
 
@@ -56,6 +57,9 @@ public class ReposActivity extends AppCompatActivity {
         ListView list = findViewById(R.id.list);
         listView = list;
         refreshBtn = findViewById(R.id.btnRefresh);
+        // GitHub server status, right above the list
+        ViewGroup listParent = (ViewGroup) status.getParent();
+        statusCard = new GhStatusCard(this, listParent, listParent.indexOfChild(status));
         adapter = new RowAdapter(this);
         list.setAdapter(adapter);
         list.setOnItemClickListener((p, v, pos, id) -> {
@@ -73,7 +77,10 @@ public class ReposActivity extends AppCompatActivity {
             Ui.press(this, findViewById(id));
         }
         findViewById(R.id.btnNew).setOnClickListener(v -> newRepoDialog());
-        findViewById(R.id.btnRefresh).setOnClickListener(v -> load());
+        findViewById(R.id.btnRefresh).setOnClickListener(v -> {
+            load();
+            if (statusCard != null) statusCard.refresh();
+        });
         accountBtn = findViewById(R.id.btnAccount);
         accountBtn.setOnClickListener(v -> AccountSheet.show(this));
         refreshAccountIcon();
@@ -117,8 +124,15 @@ public class ReposActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (statusCard != null) statusCard.stop();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        if (statusCard != null) statusCard.start();
         if (accountBtn != null) refreshAccountIcon();
     }
 
@@ -304,6 +318,7 @@ public class ReposActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (statusCard != null) statusCard.destroy();
         io.shutdown();
     }
 }
