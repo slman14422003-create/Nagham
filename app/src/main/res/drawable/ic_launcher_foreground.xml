@@ -1,34 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-
-    <!-- Soft contact shadow -->
-    <path android:pathData="M29,82C37,87 72,87 82,81C75,77 37,77 29,82Z" android:fillColor="#000000" android:fillAlpha="0.30"/>
-
-    <!-- Deep 3D extrusion -->
-    <path android:pathData="M29,77A11,8,0,1,0,51,77A11,8,0,1,0,29,77ZM58,70A11,8,0,1,0,80,70A11,8,0,1,0,58,70ZM47,38L53,36L53,73L47,75ZM76,31L82,29L82,67L76,69ZM47,36L82,29L82,41L47,48Z" android:fillColor="#120A3D"/>
-    <path android:pathData="M30,74A11,8,0,1,0,52,74A11,8,0,1,0,30,74ZM59,67A11,8,0,1,0,81,67A11,8,0,1,0,59,67ZM48,35L54,33L54,70L48,72ZM77,28L83,26L83,64L77,66ZM48,33L83,26L83,38L48,45Z" android:fillColor="#2A176D"/>
-
-    <!-- Main glass note -->
-    <path android:pathData="M29,72A11,8,0,1,0,51,72A11,8,0,1,0,29,72ZM58,65A11,8,0,1,0,80,65A11,8,0,1,0,58,65ZM47,33L53,31L53,68L47,70ZM76,26L82,24L82,62L76,64ZM47,31L82,24L82,36L47,43Z">
-        <aapt:attr name="android:fillColor">
-            <gradient android:type="linear" android:startX="30" android:startY="25" android:endX="82" android:endY="76">
-                <item android:offset="0" android:color="#FFFFFF"/>
-                <item android:offset="0.30" android:color="#F4F2FF"/>
-                <item android:offset="0.62" android:color="#B7C8FF"/>
-                <item android:offset="1" android:color="#6C6BFF"/>
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- Glass inner glow -->
-    <path android:pathData="M32,68A7.5,5.1,0,1,0,47,68A7.5,5.1,0,1,0,32,68ZM61,61A7.5,5.1,0,1,0,76,61A7.5,5.1,0,1,0,61,61ZM50,34L51.7,33.6L51.7,65L50,65.6ZM79,27L80.7,26.6L80.7,59L79,59.6Z" android:fillColor="#FFFFFF" android:fillAlpha="0.32"/>
-
-    <!-- Signature highlights -->
-    <path android:pathData="M50,33L80,27L80,29L50,35Z" android:fillColor="#FFFFFF" android:fillAlpha="0.92"/>
-    <path android:pathData="M34,68C37,65 42,64 45,66C42,66 38,68 36,70Z" android:fillColor="#FFFFFF" android:fillAlpha="0.85"/>
-    <path android:pathData="M63,61C66,58 71,57 74,59C71,59 67,61 65,63Z" android:fillColor="#FFFFFF" android:fillAlpha="0.82"/>
-    <path android:pathData="M51,36L52,35.8L52,54L51,54Z" android:fillColor="#FFFFFF" android:fillAlpha="0.55"/>
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- the knot is drawn at 62% so it sits well inside the launcher mask (any shape) -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.62"
+        android:scaleY="0.62">
+    <path
+        android:pathData="M65.71,66.29 A9.00,9.00 0 0 0 81.29,57.29 L72.29,41.71 A9.00,9.00 0 0 0 56.71,50.71 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M49.21,70.28 A9.00,9.00 0 0 0 64.79,79.28 L73.79,63.70 A9.00,9.00 0 0 0 58.21,54.70 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M37.50,57.99 A9.00,9.00 0 0 0 37.50,75.99 L55.50,75.99 A9.00,9.00 0 0 0 55.50,57.99 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M42.29,41.71 A9.00,9.00 0 0 0 26.71,50.71 L35.71,66.29 A9.00,9.00 0 0 0 51.29,57.29 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M58.79,37.72 A9.00,9.00 0 0 0 43.21,28.72 L34.21,44.30 A9.00,9.00 0 0 0 49.79,53.30 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M70.50,50.01 A9.00,9.00 0 0 0 70.50,32.01 L52.50,32.01 A9.00,9.00 0 0 0 52.50,50.01 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    </group>
 </vector>
