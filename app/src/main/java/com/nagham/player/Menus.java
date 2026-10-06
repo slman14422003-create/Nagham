@@ -36,6 +36,8 @@ public final class Menus {
                     }));
             l.add(Sheet.item(R.drawable.ic_share, c.getString(R.string.share), false, false, () -> SongInfo.share(c, t)));
             l.add(Sheet.item(R.drawable.ic_info, c.getString(R.string.song_info), false, false, () -> SongInfo.show(c, t)));
+            l.add(Sheet.item(R.drawable.ic_delete, c.getString(R.string.delete_song), false, false, () ->
+                    Dlg.confirm(c, t.title, c.getString(R.string.confirm_delete_song), R.string.delete, true, () -> DeleteActivity.start(c, t))));
             return l;
         });
     }

@@ -42,6 +42,7 @@ public final class NowPlaying implements Player.Listener {
     private android.animation.ValueAnimator tintAnim;
     private TextView upNext;
     private boolean remain;
+    private int lastPlaying = -1;
     private boolean drag;
     /** After letting go, ignore the player's old position until it has actually jumped (no flicker back). */
     private long pendingSeek = -1, pendingUntil;
@@ -252,6 +253,16 @@ public final class NowPlaying implements Player.Listener {
         title.setText(it == null || md.title == null ? c.getString(R.string.nothing_playing) : md.title);
         artist.setText(it == null ? "" : Fmt.artist(c, md.artist == null ? null : md.artist.toString()));
         boolean playing = m.getPlayWhenReady() && m.getPlaybackState() != Player.STATE_ENDED;
+        if (lastPlaying != (playing ? 1 : 0)) {
+            if (lastPlaying != -1) {
+                play.animate().cancel();
+                play.setScaleX(0.8f);
+                play.setScaleY(0.8f);
+                play.animate().scaleX(1f).scaleY(1f).setDuration(320)
+                        .setInterpolator(new android.view.animation.OvershootInterpolator(2.6f)).start();
+            }
+            lastPlaying = playing ? 1 : 0;
+        }
         play.setImageResource(playing ? R.drawable.ic_pause_fill : R.drawable.ic_play_fill);
         if (lastPlaying != null && lastPlaying != playing) Ui.pop(play);
         lastPlaying = playing;

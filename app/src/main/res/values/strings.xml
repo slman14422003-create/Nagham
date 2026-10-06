@@ -250,4 +250,15 @@
     <string name="crash_share">Share report</string>
     <string name="crash_row">Last problem report</string>
     <string name="crash_row_sub">Share the technical details of the last problem</string>
+    <string name="delete_song">Delete from phone</string>
+    <string name="confirm_delete_song">Delete this song from your phone? This cannot be undone.</string>
+    <string name="song_deleted">Song deleted</string>
+    <string name="delete_failed">Could not delete the song</string>
+    <string name="open_failed">Could not open this audio file</string>
+    <string name="default_app">Default music app</string>
+    <string name="default_app_sub">Open audio files with Nagham</string>
+    <string name="default_pick_files">Choose for audio files</string>
+    <string name="default_settings">Default apps settings</string>
+    <string name="default_hint">Pick Nagham, then tap Always</string>
+    <string name="default_no_song">Wait until your songs are loaded</string>
 </resources>

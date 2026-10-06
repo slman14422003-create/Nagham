@@ -105,7 +105,7 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
         content.addView(top, Ui.lp(-1, -2));
 
         // clock + date (localized pattern, follows 12/24h)
-        LinearLayout clockBox = new LinearLayout(this);
+        clockBox = new LinearLayout(this);
         clockBox.setOrientation(LinearLayout.VERTICAL);
         TextClock time = new TextClock(this);
         time.setFormat12Hour("h:mm");
@@ -137,12 +137,13 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
 
         // cover: biggest square that fits between the clock and the panel
         CoverBox cover = new CoverBox(this, 300);
+        coverBox = cover;
         cover.setPadding(0, Ui.dp(this, 14), 0, Ui.dp(this, 14));
         cover.setCover(np.art);
         content.addView(cover, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         // glass panel
-        LinearLayout glass = new LinearLayout(this);
+        glass = new LinearLayout(this);
         glass.setOrientation(LinearLayout.VERTICAL);
         glass.setBackgroundResource(R.drawable.bg_glass);
         glass.setPadding(Ui.dp(this, 20), Ui.dp(this, 18), Ui.dp(this, 20), Ui.dp(this, 14));
@@ -155,6 +156,7 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
 
         // swipe hint
         LinearLayout hint = new LinearLayout(this);
+        hintBox = hint;
         hint.setOrientation(LinearLayout.VERTICAL);
         hint.setGravity(Gravity.CENTER);
         hint.setPadding(0, Ui.dp(this, 10), 0, Ui.dp(this, 6));
@@ -194,6 +196,9 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
     }
 
     private TextView status;
+    private LinearLayout clockBox, glass;
+    private CoverBox coverBox;
+    private View hintBox;
     private final android.os.Handler clockH = new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable statusTick = new Runnable() {
         @Override
@@ -253,7 +258,7 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
                     if (vt[0] == null) return true;
                     vt[0].addMovement(e);
                     float dy = Math.min(0, e.getRawY() - y0[0]);
-                    content.setTranslationY(dy * 0.7f);
+                    parallax(dy);
                     content.setAlpha(Math.max(0.3f, 1f + dy / Ui.dp(this, 560)));
                     return true;
                 }
@@ -279,9 +284,28 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
         });
     }
 
+    /** Layers follow the finger at different speeds: clock first, then cover, panel and hint. */
+    private void parallax(float dy) {
+        if (clockBox == null) {
+            content.setTranslationY(dy * 0.7f);
+            return;
+        }
+        clockBox.setTranslationY(dy * 0.95f);
+        coverBox.setTranslationY(dy * 0.72f);
+        glass.setTranslationY(dy * 0.52f);
+        if (hintBox != null) hintBox.setTranslationY(dy * 0.34f);
+    }
+
     private void reset() {
-        content.animate().translationY(0).alpha(1f).setDuration(240)
-                .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();
+        android.view.animation.Interpolator spring = new android.view.animation.OvershootInterpolator(1.4f);
+        content.animate().translationY(0).alpha(1f).setDuration(260).setInterpolator(spring).start();
+        View[] layers = {clockBox, coverBox, glass, hintBox};
+        long d = 0;
+        for (View v : layers) {
+            if (v == null) continue;
+            v.animate().translationY(0).setStartDelay(d).setDuration(300).setInterpolator(spring).start();
+            d += 25;       // each layer settles a moment after the previous one
+        }
     }
 
     private void unlock() {

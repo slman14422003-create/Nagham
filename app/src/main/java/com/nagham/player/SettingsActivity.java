@@ -104,6 +104,27 @@ public class SettingsActivity extends AppCompatActivity {
         return card;
     }
 
+    /** Android has no switch that makes an app "the" music player; this is the closest the system allows. */
+    private void pickDefault() {
+        Sheet.show(this, getString(R.string.default_app), () -> {
+            List<Sheet.Item> l = new ArrayList<>();
+            l.add(Sheet.item(R.drawable.ic_play, getString(R.string.default_pick_files), false, false, () -> {
+                java.util.List<Track> all = Library.tracks;
+                if (all == null || all.isEmpty()) {
+                    Ui.toast(this, R.string.default_no_song);
+                    return;
+                }
+                Ui.toast(this, R.string.default_hint);
+                Ui.go(this, new android.content.Intent(android.content.Intent.ACTION_VIEW)
+                        .setDataAndType(all.get(0).uri, "audio/*")
+                        .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION));
+            }));
+            l.add(Sheet.item(R.drawable.ic_settings, getString(R.string.default_settings), false, false, () ->
+                    Ui.go(this, new android.content.Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))));
+            return l;
+        });
+    }
+
     private void styleModes() {
         int cur = Accent.mode(this);
         for (int i = 0; i < 3; i++) {
@@ -131,6 +152,11 @@ public class SettingsActivity extends AppCompatActivity {
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
         getWindow().setBackgroundDrawable(Ui.glow(this));
+        // layered entry: each section slides in a moment after the one above it
+        root.post(() -> {
+            if (android.os.Build.VERSION.SDK_INT >= 26 && !android.animation.ValueAnimator.areAnimatorsEnabled()) return;
+            for (int i = 0; i < Math.min(col.getChildCount(), 12); i++) Ui.enter(col.getChildAt(i), 35L * i);
+        });
 
         // ---- appearance
         col.addView(Ui.section(this, R.string.set_appearance));
@@ -140,6 +166,7 @@ public class SettingsActivity extends AppCompatActivity {
         col.addView(Ui.section(this, R.string.set_general));
         LinearLayout gen = group(col);
         gen.addView(Ui.settingRow(this, R.drawable.ic_language, getString(R.string.language), langLabel(), null, false, v -> pickLang()));
+        gen.addView(Ui.settingRow(this, R.drawable.ic_play, getString(R.string.default_app), getString(R.string.default_app_sub), null, false, v -> pickDefault()));
         Ui.group(this, gen);
 
         // ---- formats

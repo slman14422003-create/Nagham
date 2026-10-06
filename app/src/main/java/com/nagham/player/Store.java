@@ -149,6 +149,13 @@ public final class Store {
         }
     }
 
+    /** Removes deleted songs from favourites and every playlist. */
+    public static synchronized void forget(Context c, java.util.Collection<Long> gone) {
+        boolean any = false;
+        for (Playlist p : playlists(c)) any |= p.ids.removeAll(gone);
+        if (any) save(c);
+    }
+
     public static synchronized void delete(Context c, String id) {
         if (FAV.equals(id)) return;
         Playlist p = playlist(c, id);

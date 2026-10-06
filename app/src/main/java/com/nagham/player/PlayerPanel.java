@@ -48,6 +48,7 @@ public final class PlayerPanel extends FrameLayout {
     private final ImageButton fav, timer, bt;
     private final LinearLayout col;
     private final int slop, maxRadius;
+    private View parBg, parGlow;   // parallax layers
     private float collapsedY = 1000f, radius, downX, downY, startRaw;
     private boolean expanded, tracking, onSeek;
     private ValueAnimator anim;
@@ -76,10 +77,12 @@ public final class PlayerPanel extends FrameLayout {
 
         np = new NowPlaying(d, 320, false);
         final ImageView bg = Backdrop.view(d);
+        parBg = bg;
         addView(bg, new LayoutParams(-1, -1));
         ArtGlow glow = new ArtGlow(d);
         addView(glow, new LayoutParams(-1, -1));
         np.onTint = glow::setColor;
+        parGlow = glow;
         View scrim = new View(d);
         scrim.setBackgroundResource(R.drawable.bg_scrim);
         addView(scrim, new LayoutParams(-1, -1));
@@ -285,6 +288,14 @@ public final class PlayerPanel extends FrameLayout {
             radius = nr;
             invalidateOutline();
         }
+        // parallax: the far layers drift slowly, the content catches up, so the sheet feels like it has depth
+        float inv = 1f - f;
+        if (parBg != null) parBg.setTranslationY(-inv * Ui.dp(act, 70));
+        if (parGlow != null) parGlow.setTranslationY(-inv * Ui.dp(act, 40));
+        col.setTranslationY(inv * Ui.dp(act, 26));
+        float sc = 0.95f + 0.05f * f;
+        col.setScaleX(sc);
+        col.setScaleY(sc);
         host.onProgress(f);
     }
 

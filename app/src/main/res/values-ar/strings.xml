@@ -254,4 +254,15 @@
     <string name="crash_share">مشاركة التقرير</string>
     <string name="crash_row">تقرير آخر مشكلة</string>
     <string name="crash_row_sub">شارك التفاصيل التقنية لآخر مشكلة حصلت</string>
+    <string name="delete_song">حذف من الهاتف</string>
+    <string name="confirm_delete_song">حذف هذه الأغنية من الهاتف؟ لا يمكن التراجع.</string>
+    <string name="song_deleted">تم حذف الأغنية</string>
+    <string name="delete_failed">تعذّر حذف الأغنية</string>
+    <string name="open_failed">تعذّر فتح هذا الملف الصوتي</string>
+    <string name="default_app">تطبيق الموسيقى الافتراضي</string>
+    <string name="default_app_sub">افتح ملفات الصوت بنغم</string>
+    <string name="default_pick_files">اختيار لملفات الصوت</string>
+    <string name="default_settings">إعدادات التطبيقات الافتراضية</string>
+    <string name="default_hint">اختر نغم ثم اضغط «دائماً»</string>
+    <string name="default_no_song">انتظر حتى تُحمَّل أغانيك</string>
 </resources>

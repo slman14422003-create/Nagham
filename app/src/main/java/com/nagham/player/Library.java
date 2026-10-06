@@ -135,6 +135,14 @@ public final class Library {
         Collections.sort(l, cmp);
     }
 
+    /** Takes songs out of the in-memory library right after they were deleted from the phone. */
+    public static synchronized void remove(java.util.Collection<Long> gone) {
+        List<Track> n = new ArrayList<>();
+        for (Track t : tracks) if (!gone.contains(t.id)) n.add(t);
+        tracks = n;
+        for (Long id : gone) byId.remove(id);
+    }
+
     public static List<Track> resolve(List<Long> ids) {
         List<Track> out = new ArrayList<>();
         for (long id : ids) {

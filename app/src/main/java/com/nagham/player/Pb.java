@@ -110,6 +110,28 @@ public final class Pb {
                 .build();
     }
 
+    /** Plays one item that is not in the library (a file opened from another app). */
+    public static void playItem(Context c, final MediaItem item) {
+        connect(c);
+        whenReady(() -> {
+            ctl.setMediaItem(item);
+            ctl.prepare();
+            ctl.play();
+        });
+    }
+
+    /** Takes deleted songs out of the running queue. */
+    public static void removeIds(final Set<Long> ids) {
+        whenReady(() -> {
+            for (int i = ctl.getMediaItemCount() - 1; i >= 0; i--) {
+                try {
+                    if (ids.contains(Long.parseLong(ctl.getMediaItemAt(i).mediaId))) ctl.removeMediaItem(i);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        });
+    }
+
     public static long currentId() {
         if (ctl == null || ctl.getCurrentMediaItem() == null) return -1;
         try {

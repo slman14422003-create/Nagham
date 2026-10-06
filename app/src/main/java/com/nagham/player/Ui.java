@@ -130,6 +130,13 @@ public final class Ui {
     /** Draws the screen under the system bars and pads the given view by their insets (+ optional extra). */
     public static void edgeToEdge(android.app.Activity a, View content) {
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(a.getWindow(), false);
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            android.view.WindowManager.LayoutParams lp = a.getWindow().getAttributes();
+            lp.layoutInDisplayCutoutMode = android.os.Build.VERSION.SDK_INT >= 30
+                    ? android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                    : android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            a.getWindow().setAttributes(lp);
+        }
         a.getWindow().setStatusBarColor(0);
         a.getWindow().setNavigationBarColor(0);
         if (android.os.Build.VERSION.SDK_INT >= 29) a.getWindow().setNavigationBarContrastEnforced(false);

@@ -220,8 +220,8 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
             setVisibility(VISIBLE);
             setAlpha(0f);
             setTranslationY(Ui.dp(getContext(), 24));
-            animate().alpha(1f).translationY(0f).setDuration(320)
-                    .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+            animate().alpha(1f).translationY(0f).setDuration(420)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator(1.3f)).start();
         }
         schedule();
         MediaItem it = m.getCurrentMediaItem();
