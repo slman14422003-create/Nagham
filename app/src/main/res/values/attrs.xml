@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Accent colors, switched at runtime by the accent overlays (AccentBlue, AccentViolet, ...) -->
-    <attr name="nAccent" format="color" />
-    <attr name="nAccentText" format="color" />
-    <attr name="nAccentSoft" format="color" />
-    <attr name="nAccentGlow" format="color" />
-    <attr name="nOnAccent" format="color" />
-</resources>
