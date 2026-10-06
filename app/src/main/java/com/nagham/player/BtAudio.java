@@ -40,8 +40,6 @@ public final class BtAudio {
     private final ExoPlayer player;
     private final AudioManager am;
     private final Handler h = new Handler(Looper.getMainLooper());
-    private AudioEffect fx;
-    private int fxSession = -1;
     private int pinnedId = -1;
 
     private final AudioDeviceCallback devices = new AudioDeviceCallback() {
@@ -131,58 +129,143 @@ public final class BtAudio {
         updateFx(target != null && opt(app));
     }
 
-    // ------------------------------------------------------------------ compressor / limiter
+    // ------------------------------------------------------------------ sound tuning (EQ + loudness + compressor + limiter)
+
+    public static final String K_PROFILE = "bt_profile", K_BOOST = "bt_boost", K_COMP = "bt_comp";
+
+    /** Center frequencies of the 10 tuning bands (Hz). */
+    static final float[] FREQ = {31f, 62f, 125f, 250f, 500f, 1000f, 2000f, 4000f, 8000f, 16000f};
+
+    /**
+     * Gain per band in dB. 0 = "Auto for budget TWS": cheap earbuds are usually thin in the sub-bass, muddy around
+     * 250 Hz and harsh / sibilant in the upper treble, so this curve adds bass, clears the mud, lifts the voice
+     * range a touch and softens 4-16 kHz.
+     */
+    static final float[][] CURVES = {
+            {3.0f, 3.5f, 2.0f, -1.5f, -0.5f, 0f, 1.0f, -1.5f, -2.5f, -1.0f},   // Auto: budget TWS
+            {1.0f, 1.0f, 0.5f, -0.5f, 0f, 0f, 0.5f, 0f, -1.0f, 0f},            // Balanced
+            {5.0f, 5.0f, 3.0f, 1.0f, 0f, 0f, 0f, -0.5f, -1.0f, 0f},            // Bass
+            {-1.0f, -1.0f, -0.5f, 0f, 1.0f, 2.0f, 2.5f, 1.0f, 0f, 0f},         // Vocal
+            {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f}                           // Flat
+    };
+    static final float[] BOOST_DB = {0f, 3f, 6f, 9f};
+
+    private final java.util.List<AudioEffect> fxs = new java.util.ArrayList<>();
+    private String fxSig;
+
+    public static int profile(Context c) {
+        return Math.max(0, Math.min(CURVES.length - 1, Store.prefs(c).getInt(K_PROFILE, 0)));
+    }
+
+    public static int boost(Context c) {
+        return Math.max(0, Math.min(BOOST_DB.length - 1, Store.prefs(c).getInt(K_BOOST, 1)));
+    }
+
+    public static boolean comp(Context c) {
+        return Store.flag(c, K_COMP, true);
+    }
+
+    public static void setInt(Context c, String k, int v) {
+        Store.prefs(c).edit().putInt(k, v).apply();
+    }
+
+    public static boolean isKey(String k) {
+        return K_PIN.equals(k) || K_OPT.equals(k) || K_PROFILE.equals(k) || K_BOOST.equals(k) || K_COMP.equals(k);
+    }
+
+    private static float gainAt(float[] curve, float hz) {
+        if (hz <= FREQ[0]) return curve[0];
+        for (int i = 1; i < FREQ.length; i++) {
+            if (hz <= FREQ[i]) {
+                float t = (float) (Math.log(hz / FREQ[i - 1]) / Math.log(FREQ[i] / FREQ[i - 1]));
+                return curve[i - 1] + (curve[i] - curve[i - 1]) * t;
+            }
+        }
+        return curve[curve.length - 1];
+    }
 
     private void updateFx(boolean want) {
-        if (Build.VERSION.SDK_INT < 28) return;
         int sid = player.getAudioSessionId();
         if (!want || sid == C.AUDIO_SESSION_ID_UNSET || sid == 0) {
             release();
             return;
         }
-        if (fx != null && fxSession == sid) {
+        String sig = sid + "|" + profile(app) + "|" + boost(app) + "|" + comp(app);
+        if (sig.equals(fxSig) && !fxs.isEmpty()) {
             try {
-                if (!fx.getEnabled()) fx.setEnabled(true);
+                for (AudioEffect e : fxs) if (!e.getEnabled()) e.setEnabled(true);
                 return;
             } catch (Exception e) {
-                release();
+                // fall through and rebuild
             }
         }
         release();
         try {
-            AudioEffect e = build(sid);
-            e.setEnabled(true);
-            fx = e;
-            fxSession = sid;
+            if (Build.VERSION.SDK_INT >= 28) {
+                fxs.add(buildDynamics(sid, profile(app), BOOST_DB[boost(app)], comp(app)));
+            } else {
+                buildLegacy(sid, profile(app), BOOST_DB[boost(app)]);
+            }
+            for (AudioEffect e : fxs) e.setEnabled(true);
+            fxSig = sig;
         } catch (Throwable t) {
-            fx = null;
-            fxSession = -1;
+            release();
         }
     }
 
+    /** Android 9+: one effect = 10-band EQ -> input gain -> compressor -> limiter. */
     @RequiresApi(28)
-    private static AudioEffect build(int sid) {
+    private static AudioEffect buildDynamics(int sid, int profile, float boostDb, boolean comp) {
+        final int bands = FREQ.length;
         DynamicsProcessing.Config cfg = new DynamicsProcessing.Config.Builder(
                 DynamicsProcessing.VARIANT_FAVOR_TIME_RESOLUTION, 2,
-                false, 0, true, 1, false, 0, true).build();
+                true, bands, comp, comp ? 1 : 0, false, 0, true).build();
         DynamicsProcessing dp = new DynamicsProcessing(0, sid, cfg);
-        dp.setMbcAllChannelsTo(new DynamicsProcessing.Mbc(true, true, 1));
-        // one wide band, 2.2:1 above -22 dB with a soft knee, a little make-up gain
-        dp.setMbcBandAllChannelsTo(0, new DynamicsProcessing.MbcBand(true, 20000f, 12f, 160f, 2.2f, -22f, 8f, -80f, 1f, 0f, 3.5f));
-        // brick-wall safety so the make-up gain never clips before the codec
+        float[] curve = CURVES[profile];
+        dp.setPreEqAllChannelsTo(new DynamicsProcessing.Eq(true, true, bands));
+        float maxUp = 0f;
+        for (int i = 0; i < bands; i++) {
+            float edge = i == bands - 1 ? 20000f : (float) Math.sqrt(FREQ[i] * FREQ[i + 1]);
+            dp.setPreEqBandAllChannelsTo(i, new DynamicsProcessing.EqBand(true, edge, curve[i]));
+            maxUp = Math.max(maxUp, curve[i]);
+        }
+        // headroom: the louder the EQ lifts, the less input gain, so the limiter only catches rare peaks
+        dp.setInputGainAllChannelsTo(boostDb - maxUp * 0.5f);
+        if (comp) {
+            dp.setMbcAllChannelsTo(new DynamicsProcessing.Mbc(true, true, 1));
+            dp.setMbcBandAllChannelsTo(0, new DynamicsProcessing.MbcBand(true, 20000f, 12f, 160f, 2.2f, -22f, 8f, -80f, 1f, 0f, 2.0f));
+        }
         dp.setLimiterAllChannelsTo(new DynamicsProcessing.Limiter(true, true, 0, 1f, 60f, 10f, -1.5f, 0f));
         return dp;
     }
 
+    /** Android 7-8: system equalizer + loudness enhancer (no compressor / limiter, so the boost is capped). */
+    private void buildLegacy(int sid, int profile, float boostDb) {
+        android.media.audiofx.Equalizer eq = new android.media.audiofx.Equalizer(0, sid);
+        fxs.add(eq);
+        short[] range = eq.getBandLevelRange();
+        float[] curve = CURVES[profile];
+        for (short b = 0; b < eq.getNumberOfBands(); b++) {
+            float hz = eq.getCenterFreq(b) / 1000f;
+            int mb = Math.round(gainAt(curve, hz) * 100f);
+            eq.setBandLevel(b, (short) Math.max(range[0], Math.min(range[1], mb)));
+        }
+        if (boostDb > 0f) {
+            android.media.audiofx.LoudnessEnhancer le = new android.media.audiofx.LoudnessEnhancer(sid);
+            le.setTargetGain(Math.round(Math.min(boostDb, 6f) * 100f));
+            fxs.add(le);
+        }
+    }
+
     private void release() {
-        if (fx != null) {
+        for (AudioEffect e : fxs) {
             try {
-                fx.release();
+                e.release();
             } catch (Exception ignored) {
             }
         }
-        fx = null;
-        fxSession = -1;
+        fxs.clear();
+        fxSig = null;
     }
 
     // ------------------------------------------------------------------ helpers shared with the UI
@@ -195,6 +278,7 @@ public final class BtAudio {
         return Store.flag(c, K_OPT, true);
     }
 
+    /** The compressor / limiter needs Android 9+; EQ and loudness work on every supported version. */
     public static boolean optSupported() {
         return Build.VERSION.SDK_INT >= 28;
     }

@@ -191,7 +191,23 @@
     <string name="bt_pin">إبقاء الصوت على السماعة</string>
     <string name="bt_pin_sub">يوجّه التشغيل لمخرج البلوتوث هذا فقط طالما هو متصل.</string>
     <string name="bt_opt">تحسين الصوت للبلوتوث</string>
-    <string name="bt_opt_sub">يضغط الموسيقى ويحدّ ذروتها بلطف قبل إرسالها، فتبقى الأجزاء الهادئة واضحة والعالية بدون تشويه.</string>
-    <string name="bt_opt_old">يتطلب أندرويد 9 أو أحدث.</string>
+    <string name="bt_opt_sub">يطبّق الضبط تحت تلقائياً كل ما اتصلت سماعة.</string>
+    <string name="bt_opt_old">الضاغط يتطلب أندرويد 9 أو أحدث.</string>
     <string name="bt_codec">نوع ترميز البلوتوث (SBC أو AAC أو LDAC أو aptX) يختاره أندرويد مع السماعة. لاختياره يدوياً: خيارات المطور ثم Bluetooth audio codec.</string>
+    <string name="bt_tune">ضبط الصوت</string>
+    <string name="bt_profile_0">تلقائي: سماعات رخيصة (TWS)</string>
+    <string name="bt_profile_0_sub">يصلّح صوت السماعات الرخيصة المعتاد: يقوّي الجهير الضعيف، يخفف الاحتقان في الوسط، يبرز الأصوات قليلاً ويلطّف الحدّة في الأصوات العالية.</string>
+    <string name="bt_profile_1">متوازن</string>
+    <string name="bt_profile_1_sub">لمسة دفء ووضوح.</string>
+    <string name="bt_profile_2">جهير قوي</string>
+    <string name="bt_profile_2_sub">طبقات منخفضة قوية.</string>
+    <string name="bt_profile_3">أصوات</string>
+    <string name="bt_profile_3_sub">الأصوات والآلات بالمقدمة.</string>
+    <string name="bt_profile_4">بدون تعديل</string>
+    <string name="bt_profile_4_sub">بدون معادل.</string>
+    <string name="bt_loud">رفع مستوى الصوت</string>
+    <string name="bt_loud_sub">يرفع المستوى للسماعات الهادئة. المحدّد يمنع التشويه، وخفّض الصوت إذا حسّيته عالي.</string>
+    <string name="bt_loud_off">إيقاف</string>
+    <string name="bt_comp">الضاغط</string>
+    <string name="bt_comp_sub">يوازن بين الأجزاء الهادئة والعالية عشان يحافظ الترميز على وضوحها.</string>
 </resources>

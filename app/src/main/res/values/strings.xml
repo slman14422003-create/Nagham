@@ -187,7 +187,23 @@
     <string name="bt_pin">Keep sound on the headset</string>
     <string name="bt_pin_sub">Sends playback only to this Bluetooth output while it is connected.</string>
     <string name="bt_opt">Optimize sound for Bluetooth</string>
-    <string name="bt_opt_sub">Gently compresses and limits the music before it is sent, so quiet parts stay clear and loud parts do not distort.</string>
-    <string name="bt_opt_old">Needs Android 9 or newer.</string>
+    <string name="bt_opt_sub">Applies the tuning below automatically whenever a headset connects.</string>
+    <string name="bt_opt_old">The compressor needs Android 9 or newer.</string>
     <string name="bt_codec">The Bluetooth codec (SBC, AAC, LDAC, aptX) is chosen by Android together with the headset. To pick it by hand: Developer options, then Bluetooth audio codec.</string>
+    <string name="bt_tune">Sound tuning</string>
+    <string name="bt_profile_0">Auto: budget earbuds (TWS)</string>
+    <string name="bt_profile_0_sub">Fixes the usual cheap-earbud sound: adds weak bass, clears muddy mids, lifts voices a little and softens harsh highs.</string>
+    <string name="bt_profile_1">Balanced</string>
+    <string name="bt_profile_1_sub">A touch of warmth and clarity.</string>
+    <string name="bt_profile_2">Bass</string>
+    <string name="bt_profile_2_sub">Strong low end.</string>
+    <string name="bt_profile_3">Vocal</string>
+    <string name="bt_profile_3_sub">Voices and instruments in front.</string>
+    <string name="bt_profile_4">Flat</string>
+    <string name="bt_profile_4_sub">No equalizer.</string>
+    <string name="bt_loud">Loudness boost</string>
+    <string name="bt_loud_sub">Raises the level for quiet earbuds. A limiter prevents distortion; lower the volume if it feels too loud.</string>
+    <string name="bt_loud_off">Off</string>
+    <string name="bt_comp">Compressor</string>
+    <string name="bt_comp_sub">Evens out quiet and loud parts so the codec keeps them clear.</string>
 </resources>

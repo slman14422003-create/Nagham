@@ -131,6 +131,8 @@ public final class BtSheet {
             body.addView(permButton(c, d));
         }
 
+        body.addView(options(c));
+
         // facts
         LinearLayout facts = new LinearLayout(c);
         facts.setOrientation(LinearLayout.VERTICAL);
@@ -151,8 +153,6 @@ public final class BtSheet {
         fp.bottomMargin = Ui.dp(c, 10);
         body.addView(facts, fp);
 
-        body.addView(options(c));
-
         TextView note = Ui.text(c, c.getString(R.string.bt_codec), 13, R.color.text_hint);
         note.setLineSpacing(0, 1.1f);
         note.setPadding(Ui.dp(c, 12), Ui.dp(c, 12), Ui.dp(c, 12), Ui.dp(c, 4));
@@ -160,29 +160,132 @@ public final class BtSheet {
         body.addView(settingsButton(c, d));
     }
 
+    private static final int[] PROF_T = {R.string.bt_profile_0, R.string.bt_profile_1, R.string.bt_profile_2, R.string.bt_profile_3, R.string.bt_profile_4};
+    private static final int[] PROF_S = {R.string.bt_profile_0_sub, R.string.bt_profile_1_sub, R.string.bt_profile_2_sub, R.string.bt_profile_3_sub, R.string.bt_profile_4_sub};
+
+    /** Sound tuning: profile, loudness boost, compressor, master switch, keep-on-headset. Rebuilds itself on every change. */
     private static View options(final Context c) {
-        LinearLayout g = new LinearLayout(c);
-        g.setOrientation(LinearLayout.VERTICAL);
-        g.addView(Ui.toggleRow(c, c.getString(R.string.bt_pin), c.getString(R.string.bt_pin_sub), BtAudio.pin(c), (b, on) -> {
-            Store.setFlag(c, BtAudio.K_PIN, on);
-            BtAudio.refresh();
-        }));
-        boolean ok = BtAudio.optSupported();
-        View opt = Ui.toggleRow(c, c.getString(R.string.bt_opt),
-                ok ? c.getString(R.string.bt_opt_sub) : c.getString(R.string.bt_opt_old), ok && BtAudio.opt(c), (b, on) -> {
-                    Store.setFlag(c, BtAudio.K_OPT, on);
+        final LinearLayout wrap = new LinearLayout(c);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        final Runnable[] fill = new Runnable[1];
+        fill[0] = () -> {
+            wrap.removeAllViews();
+            TextView sec = Ui.text(c, c.getString(R.string.bt_tune), 14, R.color.accent_text);
+            sec.setTypeface(Typeface.DEFAULT_BOLD);
+            sec.setPadding(Ui.dp(c, 12), Ui.dp(c, 4), Ui.dp(c, 12), Ui.dp(c, 8));
+            wrap.addView(sec);
+
+            // profile
+            LinearLayout card = new LinearLayout(c);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setBackgroundResource(R.drawable.bg_card);
+            card.setPadding(Ui.dp(c, 6), Ui.dp(c, 6), Ui.dp(c, 6), Ui.dp(c, 6));
+            int cur = BtAudio.profile(c);
+            for (int i = 0; i < PROF_T.length; i++) {
+                final int p = i;
+                card.addView(choice(c, PROF_T[i], PROF_S[i], i == cur, v -> {
+                    Ui.tap(v);
+                    BtAudio.setInt(c, BtAudio.K_PROFILE, p);
                     BtAudio.refresh();
+                    fill[0].run();
+                }));
+            }
+            LinearLayout.LayoutParams cp = Ui.lp(-1, -2);
+            cp.bottomMargin = Ui.dp(c, 10);
+            wrap.addView(card, cp);
+
+            // loudness
+            LinearLayout lc = new LinearLayout(c);
+            lc.setOrientation(LinearLayout.VERTICAL);
+            lc.setBackgroundResource(R.drawable.bg_card);
+            lc.setPadding(Ui.dp(c, 16), Ui.dp(c, 14), Ui.dp(c, 16), Ui.dp(c, 16));
+            TextView lt = Ui.text(c, c.getString(R.string.bt_loud), 16, R.color.text_primary);
+            lc.addView(lt);
+            TextView ls = Ui.text(c, c.getString(R.string.bt_loud_sub), 13, R.color.text_secondary);
+            ls.setPadding(0, Ui.dp(c, 3), 0, Ui.dp(c, 10));
+            lc.addView(ls);
+            LinearLayout seg = new LinearLayout(c);
+            seg.setBackgroundResource(R.drawable.bg_segment);
+            seg.setPadding(Ui.dp(c, 4), Ui.dp(c, 4), Ui.dp(c, 4), Ui.dp(c, 4));
+            String[] names = {c.getString(R.string.bt_loud_off), "+3 dB", "+6 dB", "+9 dB"};
+            int bs = BtAudio.boost(c);
+            for (int i = 0; i < names.length; i++) {
+                final int k = i;
+                TextView b = Ui.text(c, names[i], 14, i == bs ? R.color.on_accent : R.color.text_secondary);
+                b.setGravity(Gravity.CENTER);
+                b.setMinHeight(Ui.dp(c, 42));
+                b.setTypeface(i == bs ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+                if (i == bs) b.setBackgroundResource(R.drawable.bg_segment_sel);
+                b.setOnClickListener(v -> {
+                    if (BtAudio.boost(c) == k) return;
+                    Ui.tap(v);
+                    BtAudio.setInt(c, BtAudio.K_BOOST, k);
+                    BtAudio.refresh();
+                    fill[0].run();
                 });
-        if (!ok) {
-            opt.setEnabled(false);
-            opt.setAlpha(0.5f);
+                seg.addView(b, new LinearLayout.LayoutParams(0, -2, 1f));
+            }
+            lc.addView(seg);
+            LinearLayout.LayoutParams lp = Ui.lp(-1, -2);
+            lp.bottomMargin = Ui.dp(c, 10);
+            wrap.addView(lc, lp);
+
+            // switches
+            LinearLayout g = new LinearLayout(c);
+            g.setOrientation(LinearLayout.VERTICAL);
+            g.addView(Ui.toggleRow(c, c.getString(R.string.bt_opt), c.getString(R.string.bt_opt_sub), BtAudio.opt(c), (b2, on) -> {
+                Store.setFlag(c, BtAudio.K_OPT, on);
+                BtAudio.refresh();
+            }));
+            boolean ok = BtAudio.optSupported();
+            View comp = Ui.toggleRow(c, c.getString(R.string.bt_comp),
+                    ok ? c.getString(R.string.bt_comp_sub) : c.getString(R.string.bt_opt_old), ok && BtAudio.comp(c), (b2, on) -> {
+                        Store.setFlag(c, BtAudio.K_COMP, on);
+                        BtAudio.refresh();
+                    });
+            if (!ok) {
+                comp.setEnabled(false);
+                comp.setAlpha(0.5f);
+            }
+            g.addView(comp);
+            g.addView(Ui.toggleRow(c, c.getString(R.string.bt_pin), c.getString(R.string.bt_pin_sub), BtAudio.pin(c), (b2, on) -> {
+                Store.setFlag(c, BtAudio.K_PIN, on);
+                BtAudio.refresh();
+            }));
+            Ui.group(c, g);
+            LinearLayout.LayoutParams gp = Ui.lp(-1, -2);
+            gp.bottomMargin = Ui.dp(c, 8);
+            wrap.addView(g, gp);
+        };
+        fill[0].run();
+        return wrap;
+    }
+
+    private static View choice(Context c, int titleRes, int subRes, boolean on, View.OnClickListener l) {
+        LinearLayout r = new LinearLayout(c);
+        r.setGravity(Gravity.CENTER_VERTICAL);
+        r.setMinimumHeight(Ui.dp(c, 56));
+        r.setPadding(Ui.dp(c, 12), Ui.dp(c, 8), Ui.dp(c, 12), Ui.dp(c, 8));
+        r.setBackgroundResource(R.drawable.bg_ripple_rect);
+        LinearLayout col = new LinearLayout(c);
+        col.setOrientation(LinearLayout.VERTICAL);
+        TextView t = Ui.text(c, c.getString(titleRes), 16, on ? R.color.accent_text : R.color.text_primary);
+        t.setTypeface(on ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+        col.addView(t);
+        TextView s = Ui.text(c, c.getString(subRes), 13, R.color.text_secondary);
+        s.setPadding(0, Ui.dp(c, 2), 0, 0);
+        col.addView(s);
+        r.addView(col, Ui.weight(1));
+        if (on) {
+            ImageView ck = new ImageView(c);
+            ck.setImageResource(R.drawable.ic_check);
+            Ui.tint(ck, R.color.accent_text);
+            LinearLayout.LayoutParams kp = Ui.lp(Ui.dp(c, 22), Ui.dp(c, 22));
+            kp.setMarginStart(Ui.dp(c, 10));
+            r.addView(ck, kp);
         }
-        g.addView(opt);
-        Ui.group(c, g);
-        LinearLayout.LayoutParams p = Ui.lp(-1, -2);
-        p.bottomMargin = Ui.dp(c, 4);
-        g.setLayoutParams(p);
-        return g;
+        r.setOnClickListener(l);
+        return r;
     }
 
     private static View settingsButton(final Context c, final Dialog d) {
