@@ -34,6 +34,8 @@ public final class Menus {
                         Store.toggle(c, Store.FAV, t.id);
                         if (changed != null) changed.run();
                     }));
+            l.add(Sheet.item(R.drawable.ic_share, c.getString(R.string.share), false, false, () -> SongInfo.share(c, t)));
+            l.add(Sheet.item(R.drawable.ic_info, c.getString(R.string.song_info), false, false, () -> SongInfo.show(c, t)));
             return l;
         });
     }

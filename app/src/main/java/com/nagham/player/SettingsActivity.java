@@ -173,6 +173,8 @@ public class SettingsActivity extends AppCompatActivity {
         LinearLayout pb = group(col);
         pb.addView(Ui.toggleRow(this, getString(R.string.skip_silence), getString(R.string.skip_silence_sub),
                 Store.flag(this, "skip_silence", false), (v, on) -> Store.setFlag(this, "skip_silence", on)));
+        pb.addView(Ui.toggleRow(this, getString(R.string.resume_title), getString(R.string.resume_sub),
+                Store.flag(this, "resume", true), (v, on) -> Store.setFlag(this, "resume", on)));
         Ui.group(this, pb);
 
         // ---- lock screen

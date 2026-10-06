@@ -210,4 +210,27 @@
     <string name="bt_loud_off">إيقاف</string>
     <string name="bt_comp">الضاغط</string>
     <string name="bt_comp_sub">يوازن بين الأجزاء الهادئة والعالية عشان يحافظ الترميز على وضوحها.</string>
+    <string name="share">مشاركة</string>
+    <string name="song_info">معلومات الأغنية</string>
+    <string name="si_title">العنوان</string>
+    <string name="si_artist">الفنان</string>
+    <string name="si_album">الألبوم</string>
+    <string name="si_duration">المدة</string>
+    <string name="si_format">الصيغة</string>
+    <string name="si_bitrate">معدل البت</string>
+    <string name="si_rate">معدل العينة</string>
+    <string name="si_channels">القنوات</string>
+    <string name="si_size">الحجم</string>
+    <string name="si_file">الملف</string>
+    <string name="si_folder">المجلد</string>
+    <string name="resume_title">استئناف الجلسة الأخيرة</string>
+    <string name="resume_sub">يرجّع قائمة التشغيل والأغنية والموضع لما تفتح التطبيق.</string>
+    <string name="bt_profile_5">معادلي الخاص</string>
+    <string name="bt_profile_5_sub">10 نطاقات من ضبطك. اضغط للتعديل.</string>
+    <string name="bt_wide">ستريو أوسع</string>
+    <string name="bt_wide_sub">يوسّع شوي الصوت الضيق "داخل الراس" في السماعات الصغيرة.</string>
+    <string name="bt_auto">تشغيل عند اتصال السماعة</string>
+    <string name="bt_auto_sub">يكمّل موسيقاك فور اتصال السماعة.</string>
+    <string name="eq_title">معادلي الخاص</string>
+    <string name="eq_reset">إعادة للوضع المسطّح</string>
 </resources>

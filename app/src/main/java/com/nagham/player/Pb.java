@@ -113,6 +113,21 @@ public final class Pb {
     }
 
     /** Replaces the queue and starts playing. index < 0 with shuffle starts on a random track. */
+    /** Puts a saved queue back without starting playback; skipped if something is already queued. */
+    public static void restore(Context c, final List<Track> list, final int index, final long pos, final boolean shuffle, final int repeat) {
+        if (list.isEmpty()) return;
+        connect(c);
+        final List<MediaItem> items = new ArrayList<>();
+        for (Track t : list) items.add(item(t));
+        whenReady(() -> {
+            if (ctl.getMediaItemCount() > 0) return;
+            ctl.setShuffleModeEnabled(shuffle);
+            ctl.setRepeatMode(repeat);
+            ctl.setMediaItems(items, Math.max(0, Math.min(index, items.size() - 1)), Math.max(0, pos));
+            ctl.prepare();
+        });
+    }
+
     public static void play(Context c, final List<Track> list, final int index, final boolean shuffle) {
         if (list.isEmpty()) return;
         connect(c);

@@ -41,11 +41,25 @@ public final class BtAudio {
     private final AudioManager am;
     private final Handler h = new Handler(Looper.getMainLooper());
     private int pinnedId = -1;
+    private long startedAt;
 
     private final AudioDeviceCallback devices = new AudioDeviceCallback() {
         @Override
         public void onAudioDevicesAdded(AudioDeviceInfo[] added) {
             schedule();
+            // the callback also reports devices that were already connected when it was registered: skip those
+            if (android.os.SystemClock.uptimeMillis() - startedAt < 2500 || !autoPlay(app)) return;
+            for (AudioDeviceInfo d : added) {
+                if (isBt(d.getType()) && d.getType() != 7) {
+                    h.postDelayed(() -> {
+                        try {
+                            if (player.getMediaItemCount() > 0 && !player.getPlayWhenReady()) player.play();
+                        } catch (Exception ignored) {
+                        }
+                    }, 700);
+                    break;
+                }
+            }
         }
 
         @Override
@@ -90,6 +104,7 @@ public final class BtAudio {
     }
 
     private void start() {
+        startedAt = android.os.SystemClock.uptimeMillis();
         if (am != null) am.registerAudioDeviceCallback(devices, h);
         player.addListener(listener);
         schedule();
@@ -131,7 +146,10 @@ public final class BtAudio {
 
     // ------------------------------------------------------------------ sound tuning (EQ + loudness + compressor + limiter)
 
-    public static final String K_PROFILE = "bt_profile", K_BOOST = "bt_boost", K_COMP = "bt_comp";
+    public static final String K_PROFILE = "bt_profile", K_BOOST = "bt_boost", K_COMP = "bt_comp",
+            K_WIDE = "bt_wide", K_AUTO = "bt_auto", K_EQ = "bt_eq";
+    /** Profiles 0-4 are built in, 5 is the user's own 10-band curve. */
+    public static final int PROFILES = 6, CUSTOM = 5;
 
     /** Center frequencies of the 10 tuning bands (Hz). */
     static final float[] FREQ = {31f, 62f, 125f, 250f, 500f, 1000f, 2000f, 4000f, 8000f, 16000f};
@@ -154,7 +172,7 @@ public final class BtAudio {
     private String fxSig;
 
     public static int profile(Context c) {
-        return Math.max(0, Math.min(CURVES.length - 1, Store.prefs(c).getInt(K_PROFILE, 0)));
+        return Math.max(0, Math.min(PROFILES - 1, Store.prefs(c).getInt(K_PROFILE, 0)));
     }
 
     public static int boost(Context c) {
@@ -170,7 +188,45 @@ public final class BtAudio {
     }
 
     public static boolean isKey(String k) {
-        return K_PIN.equals(k) || K_OPT.equals(k) || K_PROFILE.equals(k) || K_BOOST.equals(k) || K_COMP.equals(k);
+        return K_PIN.equals(k) || K_OPT.equals(k) || K_PROFILE.equals(k) || K_BOOST.equals(k) || K_COMP.equals(k)
+                || K_WIDE.equals(k) || K_AUTO.equals(k) || K_EQ.equals(k);
+    }
+
+    public static boolean wide(Context c) {
+        return Store.flag(c, K_WIDE, false);
+    }
+
+    public static boolean autoPlay(Context c) {
+        return Store.flag(c, K_AUTO, false);
+    }
+
+    /** The user's own curve (dB per band); starts as a copy of the built-in one that was selected. */
+    public static float[] customCurve(Context c) {
+        float[] out = new float[FREQ.length];
+        String s = Store.prefs(c).getString(K_EQ, "");
+        if (s == null || s.isEmpty()) {
+            int p = profile(c);
+            if (p < CURVES.length) System.arraycopy(CURVES[p], 0, out, 0, out.length);
+            return out;
+        }
+        String[] a = s.split(",");
+        for (int i = 0; i < out.length && i < a.length; i++) {
+            try {
+                out[i] = Math.max(-8f, Math.min(8f, Float.parseFloat(a[i])));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return out;
+    }
+
+    public static void saveCustom(Context c, float[] g) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < g.length; i++) sb.append(i > 0 ? "," : "").append(String.format(java.util.Locale.US, "%.1f", g[i]));
+        Store.prefs(c).edit().putString(K_EQ, sb.toString()).apply();
+    }
+
+    static float[] curveFor(Context c, int p) {
+        return p == CUSTOM ? customCurve(c) : CURVES[p];
     }
 
     private static float gainAt(float[] curve, float hz) {
@@ -190,7 +246,8 @@ public final class BtAudio {
             release();
             return;
         }
-        String sig = sid + "|" + profile(app) + "|" + boost(app) + "|" + comp(app);
+        final float[] curve = curveFor(app, profile(app));
+        String sig = sid + "|" + java.util.Arrays.toString(curve) + "|" + boost(app) + "|" + comp(app) + "|" + wide(app);
         if (sig.equals(fxSig) && !fxs.isEmpty()) {
             try {
                 for (AudioEffect e : fxs) if (!e.getEnabled()) e.setEnabled(true);
@@ -202,9 +259,18 @@ public final class BtAudio {
         release();
         try {
             if (Build.VERSION.SDK_INT >= 28) {
-                fxs.add(buildDynamics(sid, profile(app), BOOST_DB[boost(app)], comp(app)));
+                fxs.add(buildDynamics(sid, curve, BOOST_DB[boost(app)], comp(app)));
             } else {
-                buildLegacy(sid, profile(app), BOOST_DB[boost(app)]);
+                buildLegacy(sid, curve, BOOST_DB[boost(app)]);
+            }
+            if (wide(app)) {
+                try {
+                    // cheap earbuds have a narrow, "inside the head" image; this widens it a little
+                    android.media.audiofx.Virtualizer v = new android.media.audiofx.Virtualizer(0, sid);
+                    if (v.getStrengthSupported()) v.setStrength((short) 600);
+                    fxs.add(v);
+                } catch (Throwable ignored) {
+                }
             }
             for (AudioEffect e : fxs) e.setEnabled(true);
             fxSig = sig;
@@ -215,13 +281,12 @@ public final class BtAudio {
 
     /** Android 9+: one effect = 10-band EQ -> input gain -> compressor -> limiter. */
     @RequiresApi(28)
-    private static AudioEffect buildDynamics(int sid, int profile, float boostDb, boolean comp) {
+    private static AudioEffect buildDynamics(int sid, float[] curve, float boostDb, boolean comp) {
         final int bands = FREQ.length;
         DynamicsProcessing.Config cfg = new DynamicsProcessing.Config.Builder(
                 DynamicsProcessing.VARIANT_FAVOR_TIME_RESOLUTION, 2,
                 true, bands, comp, comp ? 1 : 0, false, 0, true).build();
         DynamicsProcessing dp = new DynamicsProcessing(0, sid, cfg);
-        float[] curve = CURVES[profile];
         dp.setPreEqAllChannelsTo(new DynamicsProcessing.Eq(true, true, bands));
         float maxUp = 0f;
         for (int i = 0; i < bands; i++) {
@@ -240,11 +305,10 @@ public final class BtAudio {
     }
 
     /** Android 7-8: system equalizer + loudness enhancer (no compressor / limiter, so the boost is capped). */
-    private void buildLegacy(int sid, int profile, float boostDb) {
+    private void buildLegacy(int sid, float[] curve, float boostDb) {
         android.media.audiofx.Equalizer eq = new android.media.audiofx.Equalizer(0, sid);
         fxs.add(eq);
         short[] range = eq.getBandLevelRange();
-        float[] curve = CURVES[profile];
         for (short b = 0; b < eq.getNumberOfBands(); b++) {
             float hz = eq.getCenterFreq(b) / 1000f;
             int mb = Math.round(gainAt(curve, hz) * 100f);

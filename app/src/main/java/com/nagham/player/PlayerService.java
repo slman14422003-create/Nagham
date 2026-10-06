@@ -91,6 +91,17 @@ public class PlayerService extends MediaSessionService {
         if ("lock_auto".equals(key) && player != null) OverlayAnchor.sync(this, player.getPlayWhenReady() && sp.getBoolean(key, true));
     };
 
+    private final android.os.Handler saveTick = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable saveRun = new Runnable() {
+        @Override
+        public void run() {
+            if (player != null && player.isPlaying()) {
+                Resume.save(PlayerService.this, player);
+                saveTick.postDelayed(this, 15000);
+            }
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -106,6 +117,23 @@ public class PlayerService extends MediaSessionService {
             @Override
             public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
                 OverlayAnchor.sync(PlayerService.this, playWhenReady && Store.flag(PlayerService.this, "lock_auto", true));
+            }
+
+            @Override
+            public void onMediaItemTransition(androidx.media3.common.MediaItem item, int reason) {
+                Resume.save(PlayerService.this, player);
+            }
+
+            @Override
+            public void onIsPlayingChanged(boolean playing) {
+                Resume.save(PlayerService.this, player);
+                saveTick.removeCallbacksAndMessages(null);
+                if (playing) saveTick.postDelayed(saveRun, 15000);
+            }
+
+            @Override
+            public void onTimelineChanged(androidx.media3.common.Timeline t, int reason) {
+                if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) Resume.save(PlayerService.this, player);
             }
         });
         PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, PlayerActivity.class),
@@ -139,6 +167,8 @@ public class PlayerService extends MediaSessionService {
         } catch (Exception ignored) {
         }
         OverlayAnchor.sync(this, false);
+        saveTick.removeCallbacksAndMessages(null);
+        if (player != null) Resume.save(this, player);
         BtAudio.detach();
         Store.prefs(this).unregisterOnSharedPreferenceChangeListener(prefs);
         h.removeCallbacksAndMessages(null);

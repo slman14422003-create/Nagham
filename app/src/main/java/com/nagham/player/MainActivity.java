@@ -302,7 +302,10 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     }
 
     private void rescan() {
-        Library.scan(this, this::refresh);
+        Library.scan(this, () -> {
+            Resume.restore(this);
+            refresh();
+        });
         refresh();
     }
 

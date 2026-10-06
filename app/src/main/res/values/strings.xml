@@ -206,4 +206,27 @@
     <string name="bt_loud_off">Off</string>
     <string name="bt_comp">Compressor</string>
     <string name="bt_comp_sub">Evens out quiet and loud parts so the codec keeps them clear.</string>
+    <string name="share">Share</string>
+    <string name="song_info">Song info</string>
+    <string name="si_title">Title</string>
+    <string name="si_artist">Artist</string>
+    <string name="si_album">Album</string>
+    <string name="si_duration">Duration</string>
+    <string name="si_format">Format</string>
+    <string name="si_bitrate">Bitrate</string>
+    <string name="si_rate">Sample rate</string>
+    <string name="si_channels">Channels</string>
+    <string name="si_size">Size</string>
+    <string name="si_file">File</string>
+    <string name="si_folder">Folder</string>
+    <string name="resume_title">Resume last session</string>
+    <string name="resume_sub">Puts back your queue, song and position when you open the app.</string>
+    <string name="bt_profile_5">My equalizer</string>
+    <string name="bt_profile_5_sub">Your own 10 bands. Tap to edit.</string>
+    <string name="bt_wide">Wider stereo</string>
+    <string name="bt_wide_sub">Widens the narrow "inside the head" sound of small earbuds a little.</string>
+    <string name="bt_auto">Play when the headset connects</string>
+    <string name="bt_auto_sub">Resumes your music as soon as the headset connects.</string>
+    <string name="eq_title">My equalizer</string>
+    <string name="eq_reset">Reset to flat</string>
 </resources>

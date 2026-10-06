@@ -160,8 +160,8 @@ public final class BtSheet {
         body.addView(settingsButton(c, d));
     }
 
-    private static final int[] PROF_T = {R.string.bt_profile_0, R.string.bt_profile_1, R.string.bt_profile_2, R.string.bt_profile_3, R.string.bt_profile_4};
-    private static final int[] PROF_S = {R.string.bt_profile_0_sub, R.string.bt_profile_1_sub, R.string.bt_profile_2_sub, R.string.bt_profile_3_sub, R.string.bt_profile_4_sub};
+    private static final int[] PROF_T = {R.string.bt_profile_0, R.string.bt_profile_1, R.string.bt_profile_2, R.string.bt_profile_3, R.string.bt_profile_4, R.string.bt_profile_5};
+    private static final int[] PROF_S = {R.string.bt_profile_0_sub, R.string.bt_profile_1_sub, R.string.bt_profile_2_sub, R.string.bt_profile_3_sub, R.string.bt_profile_4_sub, R.string.bt_profile_5_sub};
 
     /** Sound tuning: profile, loudness boost, compressor, master switch, keep-on-headset. Rebuilds itself on every change. */
     private static View options(final Context c) {
@@ -185,9 +185,14 @@ public final class BtSheet {
                 final int p = i;
                 card.addView(choice(c, PROF_T[i], PROF_S[i], i == cur, v -> {
                     Ui.tap(v);
+                    boolean wasCustom = BtAudio.profile(c) == BtAudio.CUSTOM;
+                    if (p == BtAudio.CUSTOM && !wasCustom && Store.prefs(c).getString(BtAudio.K_EQ, "").isEmpty()) {
+                        BtAudio.saveCustom(c, BtAudio.customCurve(c));   // start from the profile you were on
+                    }
                     BtAudio.setInt(c, BtAudio.K_PROFILE, p);
                     BtAudio.refresh();
                     fill[0].run();
+                    if (p == BtAudio.CUSTOM) EqSheet.show(c);
                 }));
             }
             LinearLayout.LayoutParams cp = Ui.lp(-1, -2);
@@ -250,6 +255,14 @@ public final class BtSheet {
             g.addView(comp);
             g.addView(Ui.toggleRow(c, c.getString(R.string.bt_pin), c.getString(R.string.bt_pin_sub), BtAudio.pin(c), (b2, on) -> {
                 Store.setFlag(c, BtAudio.K_PIN, on);
+                BtAudio.refresh();
+            }));
+            g.addView(Ui.toggleRow(c, c.getString(R.string.bt_wide), c.getString(R.string.bt_wide_sub), BtAudio.wide(c), (b2, on) -> {
+                Store.setFlag(c, BtAudio.K_WIDE, on);
+                BtAudio.refresh();
+            }));
+            g.addView(Ui.toggleRow(c, c.getString(R.string.bt_auto), c.getString(R.string.bt_auto_sub), BtAudio.autoPlay(c), (b2, on) -> {
+                Store.setFlag(c, BtAudio.K_AUTO, on);
                 BtAudio.refresh();
             }));
             Ui.group(c, g);
@@ -335,7 +348,7 @@ public final class BtSheet {
         return iv;
     }
 
-    private static void addFact(Context c, LinearLayout g, int labelRes, String value) {
+    static void addFact(Context c, LinearLayout g, int labelRes, String value) {
         LinearLayout r = new LinearLayout(c);
         r.setGravity(Gravity.CENTER_VERTICAL);
         r.setPadding(0, Ui.dp(c, 12), 0, Ui.dp(c, 12));
