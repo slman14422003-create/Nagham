@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         View[] btns = {
                 Ui.icon(this, R.drawable.ic_search, R.string.search, v -> toggleSearch()),
                 Ui.icon(this, R.drawable.ic_sort, R.string.sort_by, v -> Menus.sort(this, this::refresh)),
-                Ui.icon(this, R.drawable.ic_settings, R.string.settings, v -> startActivity(new Intent(this, SettingsActivity.class)))};
+                Ui.icon(this, R.drawable.ic_settings, R.string.settings, v -> Ui.go(this, new Intent(this, SettingsActivity.class)))};
         for (View v : btns) {
             ((LinearLayout.LayoutParams) v.getLayoutParams()).setMarginStart(Ui.dp(this, 8));
             bar.addView(v);
@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         root.addView(search);
 
         banner = Ui.settingRow(this, R.drawable.ic_shield, getString(R.string.finish_setup), getString(R.string.finish_setup_sub),
-                null, false, v -> startActivity(new Intent(this, SettingsActivity.class)));
+                null, false, v -> Ui.go(this, new Intent(this, SettingsActivity.class)));
         banner.setVisibility(View.GONE);
         Ui.shape(this, banner.findViewById(R.id.card), true, true, R.color.accent_soft);
         root.addView(banner);
@@ -302,6 +302,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     }
 
     private void rescan() {
+        CrashGuard.offer(this);
         Library.scan(this, () -> {
             Resume.restore(this);
             refresh();
@@ -418,7 +419,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
                         pl.name, getResources().getQuantityString(R.plurals.songs_n, cnt, cnt), null, false, v -> {
                             Intent i = new Intent(MainActivity.this, PlaylistActivity.class);
                             i.putExtra("pid", pl.id);
-                            startActivity(i);
+                            Ui.go(MainActivity.this, i);
                         });
                 Ui.shape(MainActivity.this, row.findViewById(R.id.card), false, pos == n - 1, R.color.surface);
             }

@@ -36,6 +36,12 @@ public final class NowPlaying implements Player.Listener {
     private final TextView title, artist, cur, total;
     private final SeekBar seek;
     private final ImageButton play, shuffle, repeat;
+    /** Hosts (player, lock screen) get the colour picked from the cover; 0 = grey / no cover. */
+    public java.util.function.IntConsumer onTint;
+    private int tintShown = 0xFFFFFFFF;
+    private android.animation.ValueAnimator tintAnim;
+    private TextView upNext;
+    private boolean remain;
     private boolean drag;
     /** After letting go, ignore the player's old position until it has actually jumped (no flicker back). */
     private long pendingSeek = -1, pendingUntil;
@@ -79,6 +85,9 @@ public final class NowPlaying implements Player.Listener {
         title.setMaxLines(2);
         title.setEllipsize(android.text.TextUtils.TruncateAt.END);
         title.setLineSpacing(0, 1.05f);
+        // long titles shrink to fit two lines instead of being cut with "..."
+        androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(title, 17, lock ? 22 : 26, 1,
+                android.util.TypedValue.COMPLEX_UNIT_SP);
         artist = Ui.text(c, "", 15, R.color.text_secondary);
         artist.setSingleLine(true);
         artist.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -89,6 +98,14 @@ public final class NowPlaying implements Player.Listener {
         }
         info.addView(title, Ui.lp(-1, -2));
         info.addView(artist, Ui.lp(-1, -2));
+        if (!lock) {
+            upNext = Ui.text(c, "", 13, R.color.accent_text);
+            upNext.setSingleLine(true);
+            upNext.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            upNext.setPadding(0, Ui.dp(c, 8), 0, 0);
+            upNext.setVisibility(View.GONE);
+            info.addView(upNext, Ui.lp(-1, -2));
+        }
 
         seekBlock = new LinearLayout(c);
         seekBlock.setOrientation(LinearLayout.VERTICAL);
@@ -101,7 +118,10 @@ public final class NowPlaying implements Player.Listener {
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar s, int p, boolean user) {
-                if (user) cur.setText(Fmt.time(p));
+                if (user) {
+                    cur.setText(Fmt.time(p));
+                    if (remain) total.setText("-" + Fmt.time(Math.max(0, s.getMax() - p)));
+                }
             }
 
             @Override
@@ -142,6 +162,17 @@ public final class NowPlaying implements Player.Listener {
         cur = Ui.text(c, "0:00", 12, R.color.text_secondary);
         total = Ui.text(c, "0:00", 12, R.color.text_secondary);
         total.setGravity(Gravity.END);
+        total.setPadding(0, Ui.dp(c, 6), 0, Ui.dp(c, 6));
+        remain = Store.flag(c, "remain", false);
+        // tap the total time to switch between the song length and the time left
+        total.setOnClickListener(v -> {
+            remain = !remain;
+            Store.setFlag(c, "remain", remain);
+            Ui.tap(v);
+            lastDur = -1;
+            lastSec = -1;
+            progress();
+        });
         times.addView(cur, Ui.weight(1));
         times.addView(total, Ui.weight(1));
         seekBlock.addView(seek, Ui.lp(-1, Ui.dp(c, 44)));
@@ -206,6 +237,14 @@ public final class NowPlaying implements Player.Listener {
     }
 
     public void refresh() {
+        try {
+            refreshInner();
+        } catch (RuntimeException e) {
+            CrashGuard.nonFatal("now playing", e);
+        }
+    }
+
+    private void refreshInner() {
         MediaController m = Pb.get();
         if (m == null) return;
         MediaItem it = m.getCurrentMediaItem();
@@ -226,6 +265,16 @@ public final class NowPlaying implements Player.Listener {
             art.animate().scaleX(tgt).scaleY(tgt).setDuration(320)
                     .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
         }
+        if (upNext != null) {
+            int ni = m.getNextMediaItemIndex();
+            if (ni >= 0 && ni < m.getMediaItemCount() && ni != m.getCurrentMediaItemIndex()) {
+                CharSequence nt = m.getMediaItemAt(ni).mediaMetadata.title;
+                upNext.setText(c.getString(R.string.up_next) + ": " + (nt == null ? "" : nt));
+                upNext.setVisibility(View.VISIBLE);
+            } else {
+                upNext.setVisibility(View.GONE);
+            }
+        }
         Ui.tint(shuffle, m.getShuffleModeEnabled() ? R.color.accent_text : R.color.text_secondary);
         int rm = m.getRepeatMode();
         repeat.setImageResource(rm == Player.REPEAT_MODE_ONE ? R.drawable.ic_repeat_one : R.drawable.ic_repeat);
@@ -236,6 +285,7 @@ public final class NowPlaying implements Player.Listener {
             boolean first = "\u0000".equals(lastArt);
             lastArt = key;
             Art.load(c, au, art, artPx);
+            tintFromArt(au, key);
             if (!first && !quietArt) {
                 art.setAlpha(0.35f);
                 art.setScaleX(coverTarget * 0.85f);
@@ -251,6 +301,51 @@ public final class NowPlaying implements Player.Listener {
     }
 
     private void progress() {
+        try {
+            progressInner();
+        } catch (RuntimeException e) {
+            CrashGuard.nonFatal("seek bar", e);
+        }
+    }
+
+    // ---- colour from the cover: tints the seek bar here and the glow in the host
+    private void tintFromArt(Uri au, final String key) {
+        if (au == null) {
+            applyTint(0);
+            return;
+        }
+        Art.fetch(c, au, artPx, bmp -> {
+            if (!key.equals(lastArt)) return;
+            applyTint(bmp == null ? 0 : colorOf(bmp));
+        });
+    }
+
+    private static int colorOf(android.graphics.Bitmap b) {
+        try {
+            android.graphics.Bitmap sm = android.graphics.Bitmap.createScaledBitmap(b, 24, 24, true);
+            int[] px = new int[24 * 24];
+            sm.getPixels(px, 0, 24, 0, 0, 24, 24);
+            if (sm != b) sm.recycle();
+            return ArtColor.dominant(px, px.length);
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
+    private void applyTint(int color) {
+        if (onTint != null) onTint.accept(color);
+        int target = color == 0 ? 0xFFFFFFFF : color;
+        if (tintAnim != null) tintAnim.cancel();
+        tintAnim = android.animation.ValueAnimator.ofObject(new android.animation.ArgbEvaluator(), tintShown, target);
+        tintAnim.setDuration(500);
+        tintAnim.addUpdateListener(a -> {
+            tintShown = (Integer) a.getAnimatedValue();
+            seek.setProgressTintList(android.content.res.ColorStateList.valueOf(tintShown));
+        });
+        tintAnim.start();
+    }
+
+    private void progressInner() {
         MediaController m = Pb.get();
         if (m == null) return;
         long d = m.getDuration();
@@ -258,7 +353,7 @@ public final class NowPlaying implements Player.Listener {
         if (d != lastDur) {
             lastDur = d;
             seek.setMax((int) d);
-            total.setText(Fmt.time(d));
+            total.setText(remain ? "-" + Fmt.time(d) : Fmt.time(d));
         }
         seek.setEnabled(d > 0);
         if (!drag) {
@@ -273,6 +368,7 @@ public final class NowPlaying implements Player.Listener {
             if (sec != lastSec) {
                 lastSec = sec;
                 cur.setText(Fmt.time(p));
+                if (remain) total.setText("-" + Fmt.time(Math.max(0, d - p)));
             }
         }
     }

@@ -149,6 +149,6 @@ public final class Menus {
     }
 
     public static void openLock(Activity a) {
-        a.startActivity(new Intent(a, LockActivity.class));
+        Ui.go(a, new Intent(a, LockActivity.class));
     }
 }

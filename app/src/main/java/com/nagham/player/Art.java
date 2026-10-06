@@ -84,7 +84,13 @@ public final class Art {
             return;
         }
         EX.execute(() -> {
-            final Bitmap r = loadSync(app, uri, px);
+            Bitmap rr = null;
+            try {
+                rr = loadSync(app, uri, px);
+            } catch (Throwable t) {          // out of memory, corrupt tags, vanished file: show the placeholder instead of crashing
+                CrashGuard.nonFatal("cover art", t);
+            }
+            final Bitmap r = rr;
             if (r != null) CACHE.put(key, r);
             else MISSING.add(key);
             MAIN.post(() -> cb.got(r));

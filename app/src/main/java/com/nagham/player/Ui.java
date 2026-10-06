@@ -2,6 +2,7 @@ package com.nagham.player;
 
 import android.animation.AnimatorInflater;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Outline;
 import android.graphics.Typeface;
@@ -32,6 +33,16 @@ public final class Ui {
     }
 
     /** Light tick on the key actions, like the system does. */
+    /** startActivity that can never take the app down (missing app, background-start limits, odd ROMs). */
+    public static void go(Context c, Intent i) {
+        try {
+            if (!(c instanceof android.app.Activity)) i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Exception e) {
+            CrashGuard.nonFatal("startActivity", e);
+        }
+    }
+
     public static void tap(View v) {
         v.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
     }

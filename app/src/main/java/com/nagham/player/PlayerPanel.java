@@ -77,6 +77,9 @@ public final class PlayerPanel extends FrameLayout {
         np = new NowPlaying(d, 320, false);
         final ImageView bg = Backdrop.view(d);
         addView(bg, new LayoutParams(-1, -1));
+        ArtGlow glow = new ArtGlow(d);
+        addView(glow, new LayoutParams(-1, -1));
+        np.onTint = glow::setColor;
         View scrim = new View(d);
         scrim.setBackgroundResource(R.drawable.bg_scrim);
         addView(scrim, new LayoutParams(-1, -1));
@@ -294,6 +297,14 @@ public final class PlayerPanel extends FrameLayout {
     }
 
     private void refreshExtras() {
+        try {
+            refreshExtrasInner();
+        } catch (RuntimeException e) {
+            CrashGuard.nonFatal("player extras", e);
+        }
+    }
+
+    private void refreshExtrasInner() {
         heart(false);
         Ui.tint(timer, Pb.sleepAt > 0 ? R.color.accent_text : R.color.text_primary);
         Ui.tint(bt, BtAudio.connected(act) ? R.color.accent_text : R.color.text_primary);
@@ -424,7 +435,7 @@ public final class PlayerPanel extends FrameLayout {
     private void attachCoverSwipe(View cover) {
         cover.setOnTouchListener(new View.OnTouchListener() {
             float x0, y0;
-            boolean drag;
+            boolean drag, crossed;
             VelocityTracker t;
 
             @Override
@@ -434,6 +445,7 @@ public final class PlayerPanel extends FrameLayout {
                         x0 = e.getRawX();
                         y0 = e.getRawY();
                         drag = false;
+                        crossed = false;
                         if (t != null) t.recycle();
                         t = VelocityTracker.obtain();
                         t.addMovement(e);
@@ -444,11 +456,19 @@ public final class PlayerPanel extends FrameLayout {
                         float dx = e.getRawX() - x0, dy = e.getRawY() - y0;
                         if (!drag && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy)) {
                             drag = true;
+                            v.setLayerType(View.LAYER_TYPE_HARDWARE, null);   // the cover is drawn once while it flies around
                             v.getParent().requestDisallowInterceptTouchEvent(true);
                         }
                         if (drag) {
                             float w = v.getWidth();
                             float shown = canGo(dx < 0) ? dx : dx * 0.28f;   // rubber band when there is nothing there
+                            boolean over = canGo(dx < 0) && Math.abs(dx) > w * 0.28f;
+                            if (over && !crossed) {          // a small tick when letting go would change the song
+                                crossed = true;
+                                Ui.tap(v);
+                            } else if (!over && crossed) {
+                                crossed = false;
+                            }
                             v.setTranslationX(shown);
                             v.setRotation(shown / w * 10f);
                             v.setAlpha(1f - Math.min(0.55f, Math.abs(shown) / (w * 1.4f)));
@@ -466,9 +486,10 @@ public final class PlayerPanel extends FrameLayout {
                         float dx = e.getRawX() - x0;
                         boolean up = e.getActionMasked() == MotionEvent.ACTION_UP;
                         if (!drag) {
-                            if (up && Math.abs(dx) < slop && Math.abs(e.getRawY() - y0) < slop) togglePlay(v);
+                            if (up && Math.abs(dx) < slop && Math.abs(e.getRawY() - y0) < slop) onCoverTap(v, e.getX());
                             return true;
                         }
+                        v.postDelayed(() -> v.setLayerType(View.LAYER_TYPE_NONE, null), 700);
                         float w = v.getWidth();
                         boolean go = up && (Math.abs(dx) > w * 0.28f || (Math.abs(vx) > 1100f && Math.signum(vx) == Math.signum(dx)));
                         boolean next = dx < 0;
@@ -489,6 +510,56 @@ public final class PlayerPanel extends FrameLayout {
                 }
             }
         });
+    }
+
+    private long lastTap, seekTime;
+    private int lastZone = 2, seekZone = 2;
+    private final android.os.Handler tapH = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable pendingToggle;
+
+    /**
+     * Middle of the cover: play / pause at once. Left / right third: double tap seeks 10 s back / forward (keep tapping
+     * to keep seeking); a single tap there plays / pauses after a short wait for the second tap.
+     */
+    private void onCoverTap(final View v, float x) {
+        float rel = x / Math.max(1f, v.getWidth());
+        int zone = rel < 0.32f ? -1 : rel > 0.68f ? 1 : 0;
+        long now = android.os.SystemClock.uptimeMillis();
+        if (pendingToggle != null) {
+            tapH.removeCallbacks(pendingToggle);
+            pendingToggle = null;
+        }
+        if (zone == 0) {
+            lastZone = 2;
+            togglePlay(v);
+            return;
+        }
+        boolean chain = zone == seekZone && now - seekTime < 700;
+        boolean dbl = zone == lastZone && now - lastTap < 320;
+        if (chain || dbl) {
+            Ui.tap(v);
+            seekBy(zone * 10000L);
+            SeekBubble.show(v, zone, zone > 0 ? "+10s" : "-10s");
+            seekZone = zone;
+            seekTime = now;
+            lastZone = 2;
+            return;
+        }
+        lastZone = zone;
+        lastTap = now;
+        pendingToggle = () -> {
+            pendingToggle = null;
+            togglePlay(v);
+        };
+        tapH.postDelayed(pendingToggle, 320);
+    }
+
+    private void seekBy(long delta) {
+        MediaController m = Pb.get();
+        if (m == null) return;
+        long d = m.getDuration(), to = m.getCurrentPosition() + delta;
+        if (d != androidx.media3.common.C.TIME_UNSET && d > 0) to = Math.min(to, d - 500);
+        m.seekTo(Math.max(0, to));
     }
 
     private boolean canGo(boolean next) {
@@ -531,6 +602,7 @@ public final class PlayerPanel extends FrameLayout {
 
     @Override
     protected void onDetachedFromWindow() {
+        tapH.removeCallbacksAndMessages(null);
         try {
             android.media.AudioManager am = (android.media.AudioManager) act.getSystemService(Context.AUDIO_SERVICE);
             if (am != null) am.unregisterAudioDeviceCallback(btWatch);

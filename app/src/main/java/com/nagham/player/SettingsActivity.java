@@ -166,6 +166,10 @@ public class SettingsActivity extends AppCompatActivity {
                     getResources().getQuantityString(R.plurals.songs_n, Library.tracks.size(), Library.tracks.size())));
             dirty = false;
         }));
+        if (CrashGuard.has(this)) {
+            lib.addView(Ui.settingRow(this, R.drawable.ic_info, getString(R.string.crash_row), getString(R.string.crash_row_sub), null, false,
+                    v -> CrashGuard.share(this)));
+        }
         Ui.group(this, lib);
 
         // ---- playback

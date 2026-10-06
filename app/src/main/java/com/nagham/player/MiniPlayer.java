@@ -181,7 +181,7 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
                             panel.setCollapsedY(getTop());
                             panel.expand(true);
                         } else if (up && !moved) {
-                            c.startActivity(new Intent(c, PlayerActivity.class));
+                            Ui.go(c, new Intent(c, PlayerActivity.class));
                         }
                         return true;
                     }

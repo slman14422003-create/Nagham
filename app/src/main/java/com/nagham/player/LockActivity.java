@@ -46,6 +46,10 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
     protected void onCreate(Bundle b) {
         getDelegate().setLocalNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES);
         super.onCreate(b);
+        // phones stay portrait (the manifest says so); tablets and foldables may rotate
+        if (getResources().getConfiguration().smallestScreenWidthDp >= 600) {
+            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
+        }
         if (Build.VERSION.SDK_INT >= 27) {
             setShowWhenLocked(true);
             setTurnScreenOn(true);
@@ -68,6 +72,9 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
         root.setBackgroundResource(R.drawable.bg_default_backdrop);
         final ImageView bg = Backdrop.view(this);
         root.addView(bg, new FrameLayout.LayoutParams(-1, -1));
+        ArtGlow glow = new ArtGlow(this);
+        root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
+        np.onTint = glow::setColor;
         View scrim = new View(this);
         scrim.setBackgroundResource(R.drawable.bg_scrim);
         root.addView(scrim, new FrameLayout.LayoutParams(-1, -1));
@@ -106,7 +113,9 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
         time.setTextSize(60);
         time.setIncludeFontPadding(false);
         time.setTextColor(Ui.color(this, R.color.text_primary));
-        time.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        // the phone's own system font (One UI Sans, MiSans, Google Sans ...) in a light weight, like its own lock screen
+        time.setTypeface(Build.VERSION.SDK_INT >= 28 ? Typeface.create(Typeface.DEFAULT, 300, false)
+                : Typeface.create("sans-serif-light", Typeface.NORMAL));
         time.setGravity(Gravity.CENTER);
         TextClock date = new TextClock(this);
         String pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM");
@@ -117,6 +126,11 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
         date.setGravity(Gravity.CENTER);
         clockBox.addView(time, Ui.lp(-1, -2));
         clockBox.addView(date, Ui.lp(-1, -2));
+        status = Ui.text(this, "", 13, R.color.text_secondary);
+        status.setGravity(Gravity.CENTER);
+        status.setPadding(0, Ui.dp(this, 4), 0, 0);
+        status.setVisibility(View.GONE);
+        clockBox.addView(status, Ui.lp(-1, -2));
         LinearLayout.LayoutParams clp = Ui.lp(-1, -2);
         clp.topMargin = Ui.dp(this, 14);
         content.addView(clockBox, clp);
@@ -157,9 +171,11 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
         pulse.setDuration(900);
         pulse.setRepeatCount(ObjectAnimator.INFINITE);
         pulse.setRepeatMode(ObjectAnimator.REVERSE);
-        pulse.start();
+        if (animationsOn()) pulse.start();
 
-        root.addView(content, new FrameLayout.LayoutParams(-1, -1));
+        // same column on a phone, a centered column (max 520 dp) on tablets and unfolded foldables
+        root.addView(content, new FrameLayout.LayoutParams(
+                Math.min(getResources().getDisplayMetrics().widthPixels, Ui.dp(this, 520)), -1, Gravity.CENTER_HORIZONTAL));
         setContentView(root);
         Ui.edgeToEdge(this, content);
 
@@ -169,10 +185,56 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
         f.addAction(Intent.ACTION_SCREEN_OFF);
         ContextCompat.registerReceiver(this, closer, f, ContextCompat.RECEIVER_NOT_EXPORTED);
 
-        Ui.enter(clockBox, 0);
-        Ui.enter(cover, 90);
-        Ui.enter(glass, 170);
-        Ui.enter(hint, 260);
+        if (animationsOn()) {
+            Ui.enter(clockBox, 0);
+            Ui.enter(cover, 90);
+            Ui.enter(glass, 170);
+            Ui.enter(hint, 260);
+        }
+    }
+
+    private TextView status;
+    private final android.os.Handler clockH = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable statusTick = new Runnable() {
+        @Override
+        public void run() {
+            updateStatus();
+            clockH.postDelayed(this, 60000);
+        }
+    };
+
+    /** Respect the system "remove animations" setting. */
+    private static boolean animationsOn() {
+        return Build.VERSION.SDK_INT < 26 || android.animation.ValueAnimator.areAnimatorsEnabled();
+    }
+
+    /** Next alarm and charging / low battery, the way the system lock screen shows them. */
+    private void updateStatus() {
+        try {
+            StringBuilder sb = new StringBuilder();
+            android.app.AlarmManager am = (android.app.AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            android.app.AlarmManager.AlarmClockInfo ai = am == null ? null : am.getNextAlarmClock();
+            if (ai != null) {
+                String p = DateFormat.getBestDateTimePattern(Locale.getDefault(), DateFormat.is24HourFormat(this) ? "EEEHm" : "EEEhm");
+                sb.append(getString(R.string.lock_alarm, new java.text.SimpleDateFormat(p, Locale.getDefault()).format(new java.util.Date(ai.getTriggerTime()))));
+            }
+            Intent bi = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            if (bi != null) {
+                int lvl = bi.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1), scale = bi.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, 100);
+                int st = bi.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1);
+                boolean charging = st == android.os.BatteryManager.BATTERY_STATUS_CHARGING || st == android.os.BatteryManager.BATTERY_STATUS_FULL
+                        || bi.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, 0) != 0;
+                int pct = lvl < 0 ? -1 : Math.round(lvl * 100f / Math.max(1, scale));
+                if (pct >= 0 && (charging || pct <= 20)) {
+                    if (sb.length() > 0) sb.append("   \u00B7   ");
+                    sb.append(getString(charging ? R.string.lock_charging : R.string.lock_battery, pct));
+                }
+            }
+            status.setText(sb);
+            status.setVisibility(sb.length() == 0 ? View.GONE : View.VISIBLE);
+        } catch (RuntimeException e) {
+            CrashGuard.nonFatal("lock status", e);
+        }
     }
 
     /** Drag upward; past the threshold the keyguard is dismissed (PIN / pattern / fingerprint if one is set). */
@@ -228,7 +290,7 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
             km.requestDismissKeyguard(this, new KeyguardManager.KeyguardDismissCallback() {
                 @Override
                 public void onDismissSucceeded() {
-                    startActivity(new Intent(LockActivity.this, PlayerActivity.class));
+                    Ui.go(LockActivity.this, new Intent(LockActivity.this, PlayerActivity.class));
                     finish();
                 }
 
@@ -260,12 +322,14 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
         Pb.connect(this);
         LockLauncher.lastSeen = android.os.SystemClock.elapsedRealtime();
         np.start();
+        clockH.post(statusTick);
     }
 
     @Override
     protected void onStop() {
         LockLauncher.lastSeen = android.os.SystemClock.elapsedRealtime();
         np.stop();
+        clockH.removeCallbacksAndMessages(null);
         super.onStop();
     }
 

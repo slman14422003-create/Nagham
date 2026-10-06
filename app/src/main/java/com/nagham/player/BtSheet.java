@@ -103,6 +103,7 @@ public final class BtSheet {
             box.addView(b, bp);
             body.addView(box);
             body.addView(settingsButton(c, d));
+            body.addView(analysis(c, d));
             body.addView(options(c));
             return;
         }
@@ -131,6 +132,7 @@ public final class BtSheet {
             body.addView(permButton(c, d));
         }
 
+        body.addView(analysis(c, d));
         body.addView(options(c));
 
         // facts
@@ -158,6 +160,49 @@ public final class BtSheet {
         note.setPadding(Ui.dp(c, 12), Ui.dp(c, 12), Ui.dp(c, 12), Ui.dp(c, 4));
         body.addView(note);
         body.addView(settingsButton(c, d));
+    }
+
+    /** Live readout from the sound engine, refreshed twice a second while the sheet is open. */
+    private static View analysis(final Context c, final Dialog d) {
+        LinearLayout card = new LinearLayout(c);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_card);
+        card.setPadding(Ui.dp(c, 16), Ui.dp(c, 12), Ui.dp(c, 16), Ui.dp(c, 6));
+        TextView hd = Ui.text(c, c.getString(R.string.bt_stats), 14, R.color.accent_text);
+        hd.setTypeface(Typeface.DEFAULT_BOLD);
+        card.addView(hd);
+        int[] labels = {R.string.st_lufs, R.string.st_gain, R.string.st_comp, R.string.st_lim, R.string.st_peak};
+        final TextView[] v = new TextView[labels.length];
+        for (int i = 0; i < labels.length; i++) {
+            LinearLayout r = new LinearLayout(c);
+            r.setGravity(Gravity.CENTER_VERTICAL);
+            r.setPadding(0, Ui.dp(c, 9), 0, Ui.dp(c, 9));
+            r.addView(Ui.text(c, c.getString(labels[i]), 14, R.color.text_secondary), Ui.lp(-2, -2));
+            v[i] = Ui.text(c, "-", 15, R.color.text_primary);
+            v[i].setGravity(Gravity.END);
+            LinearLayout.LayoutParams vp = Ui.weight(1);
+            vp.setMarginStart(Ui.dp(c, 16));
+            r.addView(v[i], vp);
+            card.addView(r);
+        }
+        LinearLayout.LayoutParams cp = Ui.lp(-1, -2);
+        cp.bottomMargin = Ui.dp(c, 12);
+        card.setLayoutParams(cp);
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        final Runnable[] tick = new Runnable[1];
+        tick[0] = () -> {
+            if (!d.isShowing()) return;
+            BtDsp.Stats s = BtDspProcessor.INSTANCE.stats();
+            boolean live = System.nanoTime() - s.stampNs < 1_500_000_000L && s.stampNs != 0;
+            v[0].setText(live && !Float.isNaN(s.lufsI) ? String.format(Locale.US, "%.1f LUFS", s.lufsI) : "-");
+            v[1].setText(live ? String.format(Locale.US, "%+.1f dB", s.normDb) : "-");
+            v[2].setText(live ? String.format(Locale.US, "-%.1f dB", s.compDb) : "-");
+            v[3].setText(live ? String.format(Locale.US, "%.1f dB", s.limDb) : "-");
+            v[4].setText(live ? String.format(Locale.US, "%.1f dBFS", s.peakDb) : "-");
+            h.postDelayed(tick[0], 500);
+        };
+        h.post(tick[0]);
+        return card;
     }
 
     private static final int[] PROF_T = {R.string.bt_profile_0, R.string.bt_profile_1, R.string.bt_profile_2, R.string.bt_profile_3, R.string.bt_profile_4, R.string.bt_profile_5};
@@ -212,7 +257,7 @@ public final class BtSheet {
             LinearLayout seg = new LinearLayout(c);
             seg.setBackgroundResource(R.drawable.bg_segment);
             seg.setPadding(Ui.dp(c, 4), Ui.dp(c, 4), Ui.dp(c, 4), Ui.dp(c, 4));
-            String[] names = {c.getString(R.string.bt_loud_off), "+3 dB", "+6 dB", "+9 dB"};
+            String[] names = {c.getString(R.string.bt_loud_off), c.getString(R.string.bt_lvl_low), c.getString(R.string.bt_lvl_mid), c.getString(R.string.bt_lvl_high)};
             int bs = BtAudio.boost(c);
             for (int i = 0; i < names.length; i++) {
                 final int k = i;
@@ -255,6 +300,14 @@ public final class BtSheet {
             g.addView(comp);
             g.addView(Ui.toggleRow(c, c.getString(R.string.bt_pin), c.getString(R.string.bt_pin_sub), BtAudio.pin(c), (b2, on) -> {
                 Store.setFlag(c, BtAudio.K_PIN, on);
+                BtAudio.refresh();
+            }));
+            g.addView(Ui.toggleRow(c, c.getString(R.string.bt_vbass), c.getString(R.string.bt_vbass_sub), BtAudio.vbass(c), (b2, on) -> {
+                Store.setFlag(c, BtAudio.K_VBASS, on);
+                BtAudio.refresh();
+            }));
+            g.addView(Ui.toggleRow(c, c.getString(R.string.bt_all), c.getString(R.string.bt_all_sub), BtAudio.all(c), (b2, on) -> {
+                Store.setFlag(c, BtAudio.K_ALL, on);
                 BtAudio.refresh();
             }));
             g.addView(Ui.toggleRow(c, c.getString(R.string.bt_wide), c.getString(R.string.bt_wide_sub), BtAudio.wide(c), (b2, on) -> {

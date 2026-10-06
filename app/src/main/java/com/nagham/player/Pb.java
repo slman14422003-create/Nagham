@@ -55,7 +55,13 @@ public final class Pb {
                 for (Player.Listener l : LS) ctl.addListener(l);
                 List<Runnable> w = new ArrayList<>(WAIT);
                 WAIT.clear();
-                for (Runnable r : w) r.run();
+                for (Runnable r : w) {
+                    try {
+                        r.run();
+                    } catch (RuntimeException ex) {
+                        CrashGuard.nonFatal("player callback", ex);
+                    }
+                }
             } catch (Exception e) {
                 fut = null;
                 ctl = null;
@@ -73,8 +79,13 @@ public final class Pb {
     }
 
     public static void whenReady(Runnable r) {
-        if (ctl != null) r.run();
-        else WAIT.add(r);
+        if (ctl != null) {
+            try {
+                r.run();
+            } catch (RuntimeException ex) {
+                CrashGuard.nonFatal("player callback", ex);
+            }
+        } else WAIT.add(r);
     }
 
     public static void add(Player.Listener l) {

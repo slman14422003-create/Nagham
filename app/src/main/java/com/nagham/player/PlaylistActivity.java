@@ -120,7 +120,7 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
         acts.add(Ui.icon(this, R.drawable.ic_add, R.string.add_songs, v -> {
             Intent it = new Intent(this, PickSongsActivity.class);
             it.putExtra("pid", pid);
-            startActivity(it);
+            Ui.go(this, it);
         }));
         if (!Store.FAV.equals(pid)) acts.add(Ui.icon(this, R.drawable.ic_more, R.string.more, v -> manage()));
         titleHolder.addView(Ui.topBar(this, p.name, R.drawable.ic_back, acts.toArray(new ImageButton[0])),

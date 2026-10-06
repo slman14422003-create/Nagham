@@ -105,7 +105,18 @@ public class PlayerService extends MediaSessionService {
     @Override
     public void onCreate() {
         super.onCreate();
-        player = new ExoPlayer.Builder(this)
+        player = new ExoPlayer.Builder(this, new androidx.media3.exoplayer.DefaultRenderersFactory(this) {
+            @Override
+            protected androidx.media3.exoplayer.audio.AudioSink buildAudioSink(Context context, boolean enableFloatOutput,
+                                                                               boolean enableAudioTrackPlaybackParams) {
+                // the sound engine runs right before the AudioTrack, so everything Android sends to the headset has passed it
+                return new androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+                        .setEnableFloatOutput(enableFloatOutput)
+                        .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                        .setAudioProcessors(new androidx.media3.common.audio.AudioProcessor[]{BtDspProcessor.INSTANCE})
+                        .build();
+            }
+        })
                 .setAudioAttributes(new AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
                 .setHandleAudioBecomingNoisy(true)
