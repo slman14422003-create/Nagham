@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AccentBlue">
+        <item name="nAccent">#FF3D6BFF</item>
+        <item name="nAccentText">#FF9EB6FF</item>
+        <item name="nAccentSoft">#FF0E1A40</item>
+        <item name="nAccentGlow">#4A3D6BFF</item>
+        <item name="nOnAccent">#FFFFFFFF</item>
+    </style>
+    <style name="AccentViolet">
+        <item name="nAccent">#FF7C5CFF</item>
+        <item name="nAccentText">#FFC3B5FF</item>
+        <item name="nAccentSoft">#FF171033</item>
+        <item name="nAccentGlow">#4A7C5CFF</item>
+        <item name="nOnAccent">#FFFFFFFF</item>
+    </style>
+    <style name="AccentPink">
+        <item name="nAccent">#FFE5338C</item>
+        <item name="nAccentText">#FFFFA8D1</item>
+        <item name="nAccentSoft">#FF2A0E1E</item>
+        <item name="nAccentGlow">#4AE5338C</item>
+        <item name="nOnAccent">#FFFFFFFF</item>
+    </style>
+    <style name="AccentRed">
+        <item name="nAccent">#FFE5383B</item>
+        <item name="nAccentText">#FFFF9C9C</item>
+        <item name="nAccentSoft">#FF2B0E0E</item>
+        <item name="nAccentGlow">#4AE5383B</item>
+        <item name="nOnAccent">#FFFFFFFF</item>
+    </style>
+    <style name="AccentOrange">
+        <item name="nAccent">#FFFF8A3D</item>
+        <item name="nAccentText">#FFFFB784</item>
+        <item name="nAccentSoft">#FF2B1707</item>
+        <item name="nAccentGlow">#4AFF8A3D</item>
+        <item name="nOnAccent">#FF000000</item>
+    </style>
+    <style name="AccentGreen">
+        <item name="nAccent">#FF34D399</item>
+        <item name="nAccentText">#FF8BEAB0</item>
+        <item name="nAccentSoft">#FF08231A</item>
+        <item name="nAccentGlow">#4A34D399</item>
+        <item name="nOnAccent">#FF000000</item>
+    </style>
+    <style name="AccentTeal">
+        <item name="nAccent">#FF2DD4BF</item>
+        <item name="nAccentText">#FF7DE8DC</item>
+        <item name="nAccentSoft">#FF08221F</item>
+        <item name="nAccentGlow">#4A2DD4BF</item>
+        <item name="nOnAccent">#FF000000</item>
+    </style>
+    <style name="AccentGold">
+        <item name="nAccent">#FFFACC15</item>
+        <item name="nAccentText">#FFFDE047</item>
+        <item name="nAccentSoft">#FF2A2205</item>
+        <item name="nAccentGlow">#4AFACC15</item>
+        <item name="nOnAccent">#FF000000</item>
+    </style>
+</resources>

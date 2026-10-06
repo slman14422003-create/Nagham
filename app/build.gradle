@@ -1,0 +1,64 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing: CI passes SIGNING_* environment variables (see .github/workflows/build.yml)
+def signStore = System.getenv('SIGNING_STORE_FILE')
+def hasSigning = signStore && System.getenv('SIGNING_STORE_PASSWORD') && System.getenv('SIGNING_KEY_ALIAS') && System.getenv('SIGNING_KEY_PASSWORD')
+
+android {
+    namespace = 'com.nagham.player'
+    compileSdk = 36   // Android 16
+
+    defaultConfig {
+        applicationId = "app.nagham.player"
+        minSdk = 24
+        targetSdk = 36   // Android 16
+        versionCode = (System.getenv('VERSION_CODE_OVERRIDE') ?: (1 + (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()).toString()).toInteger()
+        versionName = System.getenv('APP_VERSION_NAME') ?: "1.0"
+    }
+
+    buildFeatures { buildConfig = true }
+
+    signingConfigs {
+        release {
+            if (hasSigning) {
+                storeFile = file(signStore)
+                storePassword = System.getenv('SIGNING_STORE_PASSWORD')
+                keyAlias = System.getenv('SIGNING_KEY_ALIAS')
+                keyPassword = System.getenv('SIGNING_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasSigning) signingConfig = signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+}
+
+dependencies {
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    // Playback: ExoPlayer (MP3, AAC/M4A, FLAC, OGG, OPUS, WAV, AMR, MKA...) + MediaSession service
+    implementation 'androidx.media3:media3-exoplayer:1.8.0'
+    implementation 'androidx.media3:media3-session:1.8.0'
+    implementation 'androidx.media3:media3-common:1.8.0'
+}
