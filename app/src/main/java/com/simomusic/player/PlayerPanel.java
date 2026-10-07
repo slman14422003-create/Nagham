@@ -221,7 +221,9 @@ public final class PlayerPanel extends FrameLayout {
     public void endDrag(float vy) {
         releaseVy = vy;
         float f = 1f - getTranslationY() / collapsedY;
-        if (vy < -900f || (vy < 900f && f > 0.35f)) expand(true);
+        // short throw is enough: a thumb-length drag or a light flick opens the player
+        float dragged = collapsedY - getTranslationY();
+        if (vy < -500f || (vy < 700f && (dragged > Ui.dp(act, 80) || f > 0.35f))) expand(true);
         else collapse(true);
     }
 
@@ -466,7 +468,7 @@ public final class PlayerPanel extends FrameLayout {
                     releaseVy = vy;
                     Ui.gestureEnd(this);
                     boolean closing = e.getActionMasked() == MotionEvent.ACTION_UP
-                            && (vy > 900f || (vy > -900f && getTranslationY() > collapsedY * 0.28f));
+                            && (vy > 600f || (vy > -600f && getTranslationY() > Math.min(collapsedY * 0.28f, Ui.dp(act, 90))));
                     if (closing) collapse(true);
                     else expand(true);
                 }
@@ -513,7 +515,7 @@ public final class PlayerPanel extends FrameLayout {
                         if (drag) {
                             float w = v.getWidth();
                             float shown = canGo(dx < 0) ? dx : dx * 0.28f;   // rubber band when there is nothing there
-                            boolean over = canGo(dx < 0) && Math.abs(dx) > w * 0.28f;
+                            boolean over = canGo(dx < 0) && Math.abs(dx) > Math.min(w * 0.28f, Ui.dp(act, 56));   // 56 dp is enough to change the song
                             if (over && !crossed) {          // a small tick when letting go would change the song
                                 crossed = true;
                                 Ui.tap(v);
@@ -542,7 +544,8 @@ public final class PlayerPanel extends FrameLayout {
                         }
                         v.postDelayed(() -> v.setLayerType(View.LAYER_TYPE_NONE, null), 700);
                         float w = v.getWidth();
-                        boolean go = up && (Math.abs(dx) > w * 0.28f || (Math.abs(vx) > 1100f && Math.signum(vx) == Math.signum(dx)));
+                        boolean go = up && (Math.abs(dx) > Math.min(w * 0.28f, Ui.dp(act, 56))
+                                || (Math.abs(vx) > 500f && Math.abs(dx) > Ui.dp(act, 14) && Math.signum(vx) == Math.signum(dx)));
                         boolean next = dx < 0;
                         MediaController mc = Pb.get();
                         if (go && !next && mc != null && mc.getCurrentPosition() > 3000) {

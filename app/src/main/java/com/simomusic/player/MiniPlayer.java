@@ -164,8 +164,8 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
                         if (vertical) {
                             panel.endDrag(up ? vy : 0f);
                         } else if (horizontal) {
-                            boolean go = up && (Math.abs(dx) > Ui.dp(c, 70)
-                                    || (Math.abs(vx) > 900f && Math.signum(vx) == Math.signum(dx)));
+                            boolean go = up && (Math.abs(dx) > Ui.dp(c, 44)
+                                    || (Math.abs(vx) > 600f && Math.signum(vx) == Math.signum(dx)));
                             if (go) {
                                 MediaController m = Pb.get();
                                 boolean ltr = getLayoutDirection() == View.LAYOUT_DIRECTION_LTR;

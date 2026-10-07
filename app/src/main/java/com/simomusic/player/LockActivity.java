@@ -294,8 +294,8 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
                     }
                     boolean up = e.getActionMasked() == MotionEvent.ACTION_UP;
                     float dist = e.getRawY() - y0[0];
-                    if (up && (dist < -Ui.dp(this, 140) || (vy < -1400f && dist < -Ui.dp(this, 40)))) unlock();
-                    else if (up && (dist > Ui.dp(this, 120) || (vy > 1400f && dist > Ui.dp(this, 40)))) {
+                    if (up && (dist < -Ui.dp(this, 90) || (vy < -800f && dist < -Ui.dp(this, 30)))) unlock();
+                    else if (up && (dist > Ui.dp(this, 80) || (vy > 800f && dist > Ui.dp(this, 30)))) {
                         Ui.confirm(content);
                         finish();
                     } else reset();

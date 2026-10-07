@@ -531,7 +531,7 @@ public final class Ui {
                     vt[0] = null;
                     boolean up = e.getActionMasked() == android.view.MotionEvent.ACTION_UP;
                     float ty = root.getTranslationY();
-                    if (up && (vy > 1100f || (vy > -500f && ty > dp(c, 110)))) {
+                    if (up && (vy > 700f || (vy > -500f && ty > dp(c, 80)))) {
                         root.animate().translationY(Math.max(root.getHeight(), dp(c, 200))).setDuration(200)
                                 .setInterpolator(new android.view.animation.AccelerateInterpolator(1.4f))
                                 .withEndAction(() -> {
