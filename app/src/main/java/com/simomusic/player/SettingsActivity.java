@@ -167,6 +167,8 @@ public class SettingsActivity extends AppCompatActivity {
         LinearLayout gen = group(col);
         gen.addView(Ui.settingRow(this, R.drawable.ic_language, getString(R.string.language), langLabel(), null, false, v -> pickLang()));
         gen.addView(Ui.settingRow(this, R.drawable.ic_play, getString(R.string.default_app), getString(R.string.default_app_sub), null, false, v -> pickDefault()));
+        gen.addView(Ui.settingRow(this, R.drawable.ic_refresh, getString(R.string.upd_title),
+                getString(R.string.upd_row_sub, Updater.current(this)), null, false, v -> UpdateSheet.show(this)));
         Ui.group(this, gen);
 
         // ---- formats

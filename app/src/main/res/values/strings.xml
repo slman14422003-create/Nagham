@@ -280,4 +280,24 @@
     <string name="grp_less">Less delay</string>
     <string name="grp_more">More delay</string>
     <string name="grp_note">Android only lets an app send audio to headphones that the system lists as outputs. Phones with Dual Audio, LE Audio or Auracast can list several; if only one appears here, connect the others from Bluetooth settings or turn on your phone\'s own dual-audio option.</string>
+    <string name="upd_title">Updates</string>
+    <string name="upd_row_sub">Version %1$s · check, download and install</string>
+    <string name="upd_current">Current version: %1$s</string>
+    <string name="upd_checking">Checking for updates…</string>
+    <string name="upd_latest">You have the latest version (%1$s)</string>
+    <string name="upd_available">Version %1$s is available</string>
+    <string name="upd_notes">What\'s new</string>
+    <string name="upd_download">Download and install</string>
+    <string name="upd_downloading">Downloading… %1$d%%</string>
+    <string name="upd_ready">Download finished. Confirm the install in the system window.</string>
+    <string name="upd_install">Install</string>
+    <string name="upd_retry">Try again</string>
+    <string name="upd_check_again">Check again</string>
+    <string name="upd_perm">Allow SimoMusic to install updates</string>
+    <string name="upd_perm_sub">Android asks for this once. Turn it on, come back, then tap Install.</string>
+    <string name="upd_perm_btn">Open the setting</string>
+    <string name="upd_err_none">No published release with an apk was found yet.</string>
+    <string name="upd_err_net">Could not reach GitHub. Check your internet connection and try again.</string>
+    <string name="upd_err_limit">GitHub is limiting requests right now. Try again in a few minutes.</string>
+    <string name="upd_err_file">The downloaded file is not a valid SimoMusic update.</string>
 </resources>

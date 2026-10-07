@@ -284,4 +284,24 @@
     <string name="grp_less">تأخير أقل</string>
     <string name="grp_more">تأخير أكثر</string>
     <string name="grp_note">يسمح أندرويد للتطبيق بإرسال الصوت فقط إلى السماعات التي يعرضها النظام كمخارج صوت. الهواتف التي تدعم Dual Audio أو LE Audio أو Auracast قد تعرض عدة سماعات؛ وإن ظهرت واحدة فقط فوصّل البقية من إعدادات البلوتوث أو فعّل خيار الصوت المزدوج في هاتفك.</string>
+    <string name="upd_title">التحديثات</string>
+    <string name="upd_row_sub">الإصدار %1$s · فحص وتحميل وتثبيت</string>
+    <string name="upd_current">الإصدار الحالي: %1$s</string>
+    <string name="upd_checking">جارٍ البحث عن تحديث…</string>
+    <string name="upd_latest">لديك أحدث إصدار (%1$s)</string>
+    <string name="upd_available">يتوفر الإصدار %1$s</string>
+    <string name="upd_notes">الجديد</string>
+    <string name="upd_download">تحميل وتثبيت</string>
+    <string name="upd_downloading">جارٍ التحميل… %1$d%%</string>
+    <string name="upd_ready">اكتمل التحميل. أكّد التثبيت في نافذة النظام.</string>
+    <string name="upd_install">تثبيت</string>
+    <string name="upd_retry">حاول مجدداً</string>
+    <string name="upd_check_again">افحص مجدداً</string>
+    <string name="upd_perm">اسمح لـ SimoMusic بتثبيت التحديثات</string>
+    <string name="upd_perm_sub">يطلب أندرويد هذا مرة واحدة. فعّله ثم ارجع واضغط تثبيت.</string>
+    <string name="upd_perm_btn">فتح الإعداد</string>
+    <string name="upd_err_none">لا يوجد إصدار منشور يحتوي على ملف apk بعد.</string>
+    <string name="upd_err_net">تعذّر الوصول إلى GitHub. تحقق من الإنترنت وحاول مجدداً.</string>
+    <string name="upd_err_limit">GitHub يحدّ الطلبات حالياً. حاول بعد دقائق.</string>
+    <string name="upd_err_file">الملف الذي نُزّل ليس تحديثاً صالحاً لـ SimoMusic.</string>
 </resources>

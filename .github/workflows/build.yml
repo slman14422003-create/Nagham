@@ -3,6 +3,9 @@ name: Build Release
 # Runs ONLY when you press it: Actions > "Build Release" > Run workflow.
 # (No automatic builds on push, pull request or tag.)
 #
+# The real version is "<version>.<run number>" (e.g. 1.0.32): every build is newer than the last one, which is what
+# the in-app updater (Settings > Updates) compares against the latest GitHub Release.
+#
 # Always builds a RELEASE apk signed with the permanent key stored in the repository secrets
 # (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD). The same secrets = the same key on every
 # build, so each new apk installs over the previous one. If a secret is missing the build STOPS instead of
@@ -16,9 +19,9 @@ on:
         type: string
         default: '1.0'
       publish:
-        description: 'Also publish a GitHub Release with the apk'
+        description: 'Publish a GitHub Release with the apk (the in-app updater reads it)'
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -70,12 +73,18 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           set -euo pipefail
+          MISSING=""
           for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS; do
-            if [ -z "${!v:-}" ]; then
-              echo "::error::Secret $v is missing. Add the signing secrets first (the build never falls back to another key)."
-              exit 1
-            fi
+            if [ -z "${!v:-}" ]; then MISSING="$MISSING $v"; fi
           done
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing signing secrets in repository $GITHUB_REPOSITORY:$MISSING"
+            echo "Secrets belong to ONE repository: secrets saved in another repo (e.g. the old Nagham repo) are not visible here."
+            echo "Fix: Settings > Secrets and variables > Actions > Repository secrets, add KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS (and KEY_PASSWORD)."
+            echo "Or run the workflow 'Create signing key (run once)' in this repository (with a GH_PAT secret it writes all four for you)."
+            echo "The names must match exactly, and they must be Repository secrets (not Environment / Dependabot / Codespaces secrets)."
+            exit 1
+          fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "SIGNING_STORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
           echo "Key fingerprint (must be identical on every build):"
@@ -87,12 +96,12 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
-          APP_VERSION_NAME: ${{ inputs.version }}
+          APP_VERSION_NAME: ${{ inputs.version }}.${{ github.run_number }}
         run: cd "$PROJECT_DIR" && gradle --no-daemon :app:assembleRelease
 
       - name: Rename apk
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ inputs.version }}.${{ github.run_number }}
         run: |
           set -euo pipefail
           APK="$(ls "$PROJECT_DIR"/app/build/outputs/apk/release/*.apk | head -n1)"
@@ -101,13 +110,15 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: SimoMusic-apk
-          path: SimoMusic-${{ inputs.version }}.apk
+          path: SimoMusic-${{ inputs.version }}.${{ github.run_number }}.apk
           if-no-files-found: error
 
       - name: Publish GitHub Release
         if: ${{ inputs.publish }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ inputs.version }}
-          name: SimoMusic ${{ inputs.version }}
-          files: SimoMusic-${{ inputs.version }}.apk
+          tag_name: v${{ inputs.version }}.${{ github.run_number }}
+          name: SimoMusic ${{ inputs.version }}.${{ github.run_number }}
+          make_latest: true
+          generate_release_notes: true
+          files: SimoMusic-${{ inputs.version }}.${{ github.run_number }}.apk
