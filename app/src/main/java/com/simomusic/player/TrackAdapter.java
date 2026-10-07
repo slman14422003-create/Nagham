@@ -42,9 +42,17 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
     private final Listener l;
     private final Context ctx;
 
+    private final int cPrimary, cAccent, cHint;
+    private final android.content.res.ColorStateList tOn, tOff;
+
     public TrackAdapter(Context c, Listener l) {
         this.ctx = c;
         this.l = l;
+        cPrimary = Ui.color(c, R.color.text_primary);
+        cAccent = Ui.color(c, R.color.accent_text);
+        cHint = Ui.color(c, R.color.text_hint);
+        tOn = android.content.res.ColorStateList.valueOf(Ui.color(c, R.color.on_accent));
+        tOff = android.content.res.ColorStateList.valueOf(cHint);
     }
 
     private int off() {
@@ -105,6 +113,11 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
         final ImageButton more, handle;
         View scrim;
         EqView eq;
+        // what this row currently shows: bind only touches what really changed (a fling re-binds rows constantly)
+        int shapeState = -1, tint = -1;
+        Track bound;
+        int titleColor;
+        boolean curShown, selShown, selectMode, reorderMode;
 
         VH(FrameLayout headerHolder) {
             super(headerHolder);
@@ -190,41 +203,10 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
         ImageButton handle = Ui.flat(c, R.drawable.ic_sort, 48, R.string.reorder, null);
         Ui.tint(handle, R.color.text_secondary);
         card.addView(handle);
-        VH vh = new VH(root, card, art, title, sub, more, handle, check);
-        vh.scrim = scrim;
-        vh.eq = eq;
-        return vh;
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    @Override
-    public void onBindViewHolder(@NonNull final VH h, int position) {
-        if (h.card == null) {
-            FrameLayout f = (FrameLayout) h.itemView;
-            if (header != null && header.getParent() != f) {
-                if (header.getParent() instanceof ViewGroup) ((ViewGroup) header.getParent()).removeView(header);
-                f.removeAllViews();
-                f.addView(header);
-            }
-            return;
-        }
-        final int pos = position - off();
-        final Track t = data.get(pos);
-        boolean isCur = t.id == current;
-        boolean sel = select && selected.contains(t.id);
-        h.title.setText(t.title);
-        h.title.setTextColor(Ui.color(ctx, isCur ? R.color.accent_text : R.color.text_primary));
-        h.sub.setText(Fmt.artist(ctx, t.artist) + " · " + Fmt.time(t.duration));
-        Art.load(ctx, t.uri, h.art, Ui.dp(ctx, 52));
-        Ui.shape(ctx, h.card, pos == 0, pos == data.size() - 1, sel || isCur ? R.color.accent_soft : R.color.surface);
-        h.scrim.setVisibility(isCur && !select ? View.VISIBLE : View.GONE);
-        h.eq.setVisibility(isCur && !select ? View.VISIBLE : View.GONE);
-        h.eq.setAnimating(isCur && playing);
-        h.check.setVisibility(select ? View.VISIBLE : View.GONE);
-        h.check.setSelected(sel);
-        Ui.tint(h.check, sel ? R.color.on_accent : R.color.text_hint);
-        h.more.setVisibility(select || reorder ? View.GONE : View.VISIBLE);
-        h.handle.setVisibility(reorder ? View.VISIBLE : View.GONE);
+        final VH h = new VH(root, card, art, title, sub, more, handle, check);
+        h.scrim = scrim;
+        h.eq = eq;
+        // listeners are created once per row view, not on every bind
         h.itemView.setOnClickListener(v -> {
             int p = h.getBindingAdapterPosition() - off();
             if (p < 0 || p >= data.size()) return;
@@ -246,6 +228,59 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
             if (e.getActionMasked() == MotionEvent.ACTION_DOWN && helper != null) helper.startDrag(h);
             return false;
         });
+        return h;
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    @Override
+    public void onBindViewHolder(@NonNull final VH h, int position) {
+        if (h.card == null) {
+            FrameLayout f = (FrameLayout) h.itemView;
+            if (header != null && header.getParent() != f) {
+                if (header.getParent() instanceof ViewGroup) ((ViewGroup) header.getParent()).removeView(header);
+                f.removeAllViews();
+                f.addView(header);
+            }
+            return;
+        }
+        final int pos = position - off();
+        final Track t = data.get(pos);
+        boolean isCur = t.id == current;
+        boolean sel = select && selected.contains(t.id);
+        if (h.bound != t) {      // a rescan hands out new Track objects, so a renamed song is redrawn too
+            h.bound = t;
+            h.title.setText(t.title);
+            h.sub.setText(Fmt.artist(ctx, t.artist) + " \u00B7 " + Fmt.time(t.duration));
+        }
+        int tc = isCur ? cAccent : cPrimary;
+        if (tc != h.titleColor) {
+            h.titleColor = tc;
+            h.title.setTextColor(tc);
+        }
+        Art.load(ctx, t.uri, h.art, Ui.dp(ctx, 52));
+        // the card background (a ripple drawable) is rebuilt only when its look really changes
+        int shape = (pos == 0 ? 1 : 0) | (pos == data.size() - 1 ? 2 : 0) | (sel || isCur ? 4 : 0);
+        if (shape != h.shapeState) {
+            h.shapeState = shape;
+            Ui.shape(ctx, h.card, pos == 0, pos == data.size() - 1, sel || isCur ? R.color.accent_soft : R.color.surface);
+        }
+        boolean mark = isCur && !select;
+        if (mark != h.curShown || h.tint == -1) {
+            h.scrim.setVisibility(mark ? View.VISIBLE : View.GONE);
+            h.eq.setVisibility(mark ? View.VISIBLE : View.GONE);
+        }
+        h.eq.setAnimating(mark && playing);
+        if (h.selectMode != select || h.reorderMode != reorder || h.tint == -1) {
+            h.check.setVisibility(select ? View.VISIBLE : View.GONE);
+            h.more.setVisibility(select || reorder ? View.GONE : View.VISIBLE);
+            h.handle.setVisibility(reorder ? View.VISIBLE : View.GONE);
+        }
+        h.check.setSelected(sel);
+        if (select) androidx.core.widget.ImageViewCompat.setImageTintList(h.check, sel ? tOn : tOff);
+        h.curShown = mark;
+        h.selectMode = select;
+        h.reorderMode = reorder;
+        h.tint = 0;
     }
 
     @Override

@@ -160,8 +160,41 @@ public final class Ui {
         return ld;
     }
 
+    private static android.animation.StateListAnimator pressProto;
+
+    /** The press-scale effect is parsed from XML once and cloned: building a row used to re-parse it for every button. */
     public static void press(Context c, View v) {
-        v.setStateListAnimator(AnimatorInflater.loadStateListAnimator(c, R.animator.press_scale));
+        if (pressProto == null) {
+            try {
+                pressProto = AnimatorInflater.loadStateListAnimator(c.getApplicationContext(), R.animator.press_scale);
+            } catch (RuntimeException e) {
+                v.setStateListAnimator(AnimatorInflater.loadStateListAnimator(c, R.animator.press_scale));
+                return;
+            }
+        }
+        v.setStateListAnimator(pressProto.clone());
+    }
+
+    /**
+     * Asks for the display's highest refresh rate (120 Hz on Galaxy S / Fold / Flip) while the app is on screen. Without
+     * it One UI's adaptive refresh drops animations that are not driven by a finger (sheet settling, fades) to 60 Hz or
+     * lower, which is the "slightly laggy" feel even when nothing is slow.
+     */
+    public static void highRefresh(android.app.Activity a) {
+        try {
+            android.view.Display d = a.getWindowManager().getDefaultDisplay();
+            android.view.Display.Mode cur = d.getMode(), best = cur;
+            for (android.view.Display.Mode m : d.getSupportedModes()) {
+                if (m.getPhysicalWidth() == cur.getPhysicalWidth() && m.getPhysicalHeight() == cur.getPhysicalHeight()
+                        && m.getRefreshRate() > best.getRefreshRate() + 0.5f) best = m;
+            }
+            if (best.getModeId() != cur.getModeId()) {
+                android.view.WindowManager.LayoutParams lp = a.getWindow().getAttributes();
+                lp.preferredDisplayModeId = best.getModeId();
+                a.getWindow().setAttributes(lp);
+            }
+        } catch (RuntimeException ignored) {
+        }
     }
 
     public static void round(View v, final int radiusPx) {

@@ -270,6 +270,8 @@ public final class PlayerPanel extends FrameLayout {
     private void layer(boolean on) {
         int want = on ? LAYER_TYPE_HARDWARE : LAYER_TYPE_NONE;
         if (getLayerType() != want) setLayerType(want, null);
+        // the content column fades and scales while the sheet moves: drawn once into its own layer, not re-composited per frame
+        if (col.getLayerType() != want) col.setLayerType(want, null);
     }
 
     /** The sheet can be grabbed when open, and also while it is still animating (open or closed). */

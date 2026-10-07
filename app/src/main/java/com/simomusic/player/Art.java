@@ -18,7 +18,11 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 /** Cover-art loading (embedded art / MediaStore thumbnails) with a small memory cache. */
 public final class Art {
@@ -29,7 +33,29 @@ public final class Art {
         void got(Bitmap b);
     }
 
-    public static final ExecutorService EX = Executors.newFixedThreadPool(3);
+    /**
+     * Newest request first: while a list is being flung the covers of the rows that are on screen NOW are loaded
+     * before the ones that scrolled past (a plain FIFO queue made every cover wait for all the old rows), and the
+     * threads run below the UI thread's priority so decoding never steals frames from scrolling.
+     */
+    private static final class Lifo extends LinkedBlockingDeque<Runnable> {
+        @Override
+        public boolean offer(Runnable r) {
+            return offerFirst(r);
+        }
+    }
+
+    public static final ExecutorService EX = new ThreadPoolExecutor(3, 3, 0L, TimeUnit.MILLISECONDS, new Lifo(), new ThreadFactory() {
+        @Override
+        public Thread newThread(final Runnable r) {
+            Thread t = new Thread(() -> {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+                r.run();
+            }, "cover-art");
+            t.setDaemon(true);
+            return t;
+        }
+    });
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final Set<String> MISSING = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
     private static final LruCache<String, Bitmap> CACHE = new LruCache<String, Bitmap>((int) Math.min(48L * 1024 * 1024, Runtime.getRuntime().maxMemory() / 8)) {
@@ -72,6 +98,11 @@ public final class Art {
 
     /** Async, cached; the callback runs on the main thread with null when the file has no art. */
     public static void fetch(Context c, final Uri uri, final int px, final Cb cb) {
+        fetch(c, uri, px, cb, null);
+    }
+
+    /** `wanted` is asked again just before the work starts: a row that was scrolled away meanwhile costs nothing. */
+    public static void fetch(Context c, final Uri uri, final int px, final Cb cb, final BooleanSupplier wanted) {
         final Context app = c.getApplicationContext();
         final String key = uri + "@" + px;
         Bitmap hit = CACHE.get(key);
@@ -84,6 +115,7 @@ public final class Art {
             return;
         }
         EX.execute(() -> {
+            if (wanted != null && !wanted.getAsBoolean()) return;
             Bitmap rr = null;
             try {
                 rr = loadSync(app, uri, px);
@@ -118,7 +150,7 @@ public final class Art {
                 show(iv, b, px);
                 iv.setTag(R.id.tag_art_ok, Boolean.TRUE);
             }
-        });
+        }, () -> key.equals(iv.getTag(R.id.tag_art)));
     }
 
     private static final int[][] GRAD = {

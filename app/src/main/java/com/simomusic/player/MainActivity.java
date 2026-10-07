@@ -232,6 +232,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         rv.setOverScrollMode(View.OVER_SCROLL_NEVER);
         rv.setHasFixedSize(true);
         rv.setItemViewCacheSize(12);
+        rv.getRecycledViewPool().setMaxRecycledViews(0, 24);   // rows are costly to build: keep more of them ready while flinging
         rv.setLayoutAnimation(android.view.animation.AnimationUtils.loadLayoutAnimation(this, R.anim.layout_fall));
         RecyclerView.ItemAnimator ia = rv.getItemAnimator();
         if (ia instanceof androidx.recyclerview.widget.SimpleItemAnimator) {

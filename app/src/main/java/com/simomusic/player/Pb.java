@@ -161,17 +161,23 @@ public final class Pb {
         });
     }
 
+    /** Building thousands of MediaItems used to happen on the UI thread inside the tap: the screen froze for a moment. */
+    private static final java.util.concurrent.ExecutorService BUILD = java.util.concurrent.Executors.newSingleThreadExecutor();
+
     public static void play(Context c, final List<Track> list, final int index, final boolean shuffle) {
         if (list.isEmpty()) return;
         connect(c);
-        final List<MediaItem> items = new ArrayList<>();
-        for (Track t : list) items.add(item(t));
-        final int start = index >= 0 ? index : new Random().nextInt(items.size());
-        whenReady(() -> {
-            ctl.setShuffleModeEnabled(shuffle);
-            ctl.setMediaItems(items, start, C.TIME_UNSET);
-            ctl.prepare();
-            ctl.play();
+        final List<Track> src = new ArrayList<>(list);
+        BUILD.execute(() -> {
+            final List<MediaItem> items = new ArrayList<>(src.size());
+            for (Track t : src) items.add(item(t));
+            final int start = index >= 0 ? index : new Random().nextInt(items.size());
+            H.post(() -> whenReady(() -> {
+                ctl.setShuffleModeEnabled(shuffle);
+                ctl.setMediaItems(items, start, C.TIME_UNSET);
+                ctl.prepare();
+                ctl.play();
+            }));
         });
     }
 

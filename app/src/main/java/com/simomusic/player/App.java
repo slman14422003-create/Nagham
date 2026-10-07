@@ -70,6 +70,7 @@ public class App extends Application {
             public void onActivityCreated(Activity a, Bundle b) {
                 // runs inside super.onCreate(), before the screen builds its views
                 Accent.apply(a.getTheme(), a);
+                Ui.highRefresh(a);
                 LIVE.add(new java.lang.ref.WeakReference<>(a));
             }
             @Override public void onActivityResumed(Activity a) { }
