@@ -64,6 +64,38 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     private final ActivityResultLauncher<String[]> askPerms =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), r -> rescan());
 
+    /** The phone's songs changed (download, delete, copy…): redraw the list right away, no manual refresh. */
+    private final Runnable libChanged = new Runnable() {
+        @Override
+        public void run() {
+            if (srl != null && srl.isRefreshing()) srl.setRefreshing(false);
+            int fresh = takeFresh();
+            refresh();
+            announce(fresh);
+        }
+    };
+
+    private final java.util.Set<Long> known = new java.util.HashSet<>();
+    private boolean knownInit;
+
+    /** How many songs showed up since the last look that were added to the phone in the last 15 minutes. */
+    private int takeFresh() {
+        if (!Library.loaded) return 0;
+        long cutoff = System.currentTimeMillis() / 1000 - 900;
+        int fresh = 0;
+        for (Track t : Library.tracks) {
+            if (known.add(t.id) && knownInit && t.added > cutoff) fresh++;
+        }
+        knownInit = true;
+        return fresh;
+    }
+
+    private void announce(int fresh) {
+        if (fresh > 0 && !isFinishing() && !isDestroyed()) {
+            Ui.toast(this, getResources().getQuantityString(R.plurals.songs_added, fresh, fresh));
+        }
+    }
+
     private final Player.Listener current = new Player.Listener() {
         @Override
         public void onMediaItemTransition(MediaItem item, int reason) {
@@ -401,6 +433,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         super.onStart();
         Pb.connect(this);
         Pb.add(current);
+        Library.addListener(libChanged);
         mini.start();
         panel.onHostStart();
     }
@@ -409,12 +442,18 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     protected void onResume() {
         super.onResume();
         if (Perms.hasAudio(this) && (!Library.loaded || Library.tracks.isEmpty())) rescan();
-        else refresh();
+        else {
+            int fresh = takeFresh();
+            refresh();
+            announce(fresh);
+            Library.syncIfChanged(this);   // picks up anything that changed while the app was away
+        }
     }
 
     @Override
     protected void onStop() {
         Pb.remove(current);
+        Library.removeListener(libChanged);
         mini.stop();
         panel.onHostStop();
         super.onStop();

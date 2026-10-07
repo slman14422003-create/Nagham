@@ -15,6 +15,7 @@ import androidx.annotation.OptIn;
 import androidx.core.content.ContextCompat;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
+import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.ExoPlayer;
@@ -114,10 +115,49 @@ public class PlayerService extends MediaSessionService {
         }
     };
 
+    private int failStreak, retries;
+
+    /**
+     * One bad file, a dropped connection or a busy audio device must never leave the player dead. Short hiccups are
+     * retried on the same song; a song that cannot play is skipped; if several in a row fail, playback stops quietly.
+     */
+    private void recover(PlaybackException e) {
+        CrashGuard.nonFatal("playback error " + e.getErrorCodeName(), e);
+        final ExoPlayer p = player;
+        if (p == null || p.getMediaItemCount() == 0) return;
+        int code = e.errorCode;
+        if (code == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+            p.seekToDefaultPosition();
+            p.prepare();
+            return;
+        }
+        boolean transientError = code == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+                || code == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+                || code == PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED
+                || code == PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED;
+        if (transientError && retries < 2) {
+            retries++;
+            h.postDelayed(() -> {
+                if (player != null && player.getPlaybackState() == Player.STATE_IDLE) player.prepare();
+            }, 1200L * retries);
+            return;
+        }
+        retries = 0;
+        if (++failStreak > Math.min(p.getMediaItemCount(), 8)) {
+            failStreak = 0;     // nothing in the queue plays: stop here instead of looping forever
+            return;
+        }
+        if (p.hasNextMediaItem()) {
+            p.seekToNextMediaItem();
+            p.prepare();
+            p.play();
+        }
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
-        player = new ExoPlayer.Builder(this, new androidx.media3.exoplayer.DefaultRenderersFactory(this) {
+        androidx.media3.exoplayer.DefaultRenderersFactory renderers = new androidx.media3.exoplayer.DefaultRenderersFactory(this) {
             @Override
             protected androidx.media3.exoplayer.audio.AudioSink buildAudioSink(Context context, boolean enableFloatOutput,
                                                                                boolean enableAudioTrackPlaybackParams) {
@@ -128,15 +168,41 @@ public class PlayerService extends MediaSessionService {
                         .setAudioProcessors(new androidx.media3.common.audio.AudioProcessor[]{BtDspProcessor.INSTANCE})
                         .build();
             }
-        })
+        };
+        // if a device's preferred decoder refuses a file, try the next one instead of failing the song
+        renderers.setEnableDecoderFallback(true);
+        // OkHttp for links opened from other apps: timeouts, retries, redirects and HTTP/2 done properly
+        okhttp3.OkHttpClient http = new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+        androidx.media3.datasource.DefaultDataSource.Factory dataSources = new androidx.media3.datasource.DefaultDataSource.Factory(
+                this, new androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(http).setUserAgent("SimoMusic/" + BuildConfig.VERSION_NAME));
+        player = new ExoPlayer.Builder(this, renderers)
+                .setMediaSourceFactory(new androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSources))
                 .setAudioAttributes(new AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
                 .setHandleAudioBecomingNoisy(true)
-                .setWakeMode(C.WAKE_MODE_LOCAL)
+                .setWakeMode(C.WAKE_MODE_NETWORK)
                 .build();
         player.setSkipSilenceEnabled(Store.flag(this, "skip_silence", false));
         BtAudio.attach(this, player);
         GroupAudio.attach(this, player);
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onPlayerError(PlaybackException error) {
+                recover(error);
+            }
+
+            @Override
+            public void onPlaybackStateChanged(int state) {
+                if (state == Player.STATE_READY) {
+                    failStreak = 0;
+                    retries = 0;
+                }
+            }
+        });
         player.addListener(new Player.Listener() {
             @Override
             public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {

@@ -17,7 +17,9 @@ public final class Menus {
     }
 
     public static void song(final Context c, final Track t, final Runnable changed) {
-        Sheet.show(c, t.title, () -> {
+        String sub = t.artist == null || t.artist.isEmpty() ? t.album : t.artist;
+        if (sub == null || sub.isEmpty()) sub = t.ext.toUpperCase();
+        Sheet.show(c, t.title, sub, () -> {
             List<Sheet.Item> l = new ArrayList<>();
             l.add(Sheet.item(R.drawable.ic_play, c.getString(R.string.play_next), false, false, () -> {
                 Pb.next(c, t);
@@ -27,16 +29,19 @@ public final class Menus {
                 Pb.enqueue(c, t);
                 Ui.toast(c, R.string.added_queue);
             }));
+            l.add(Sheet.divider());
             l.add(Sheet.item(R.drawable.ic_add, c.getString(R.string.add_to_playlist), false, false, () -> addToPlaylist(c, t.id, changed)));
             boolean fav = Store.has(c, Store.FAV, t.id);
             l.add(Sheet.item(fav ? R.drawable.ic_heart_fill : R.drawable.ic_heart,
-                    c.getString(fav ? R.string.unfavorite : R.string.favorite), false, false, () -> {
+                    c.getString(fav ? R.string.unfavorite : R.string.favorite), fav, false, () -> {
                         Store.toggle(c, Store.FAV, t.id);
                         if (changed != null) changed.run();
                     }));
+            l.add(Sheet.divider());
             l.add(Sheet.item(R.drawable.ic_share, c.getString(R.string.share), false, false, () -> SongInfo.share(c, t)));
             l.add(Sheet.item(R.drawable.ic_info, c.getString(R.string.song_info), false, false, () -> SongInfo.show(c, t)));
-            l.add(Sheet.item(R.drawable.ic_delete, c.getString(R.string.delete_song), false, false, () ->
+            l.add(Sheet.divider());
+            l.add(Sheet.danger(R.drawable.ic_delete, c.getString(R.string.delete_song), () ->
                     Dlg.confirm(c, t.title, c.getString(R.string.confirm_delete_song), R.string.delete, true, () -> DeleteActivity.start(c, t))));
             return l;
         });
@@ -72,13 +77,12 @@ public final class Menus {
         final int[] names = {R.string.sort_title, R.string.sort_artist, R.string.sort_recent, R.string.sort_duration};
         Sheet.show(c, c.getString(R.string.sort_by), () -> {
             List<Sheet.Item> l = new ArrayList<>();
-            for (int i = 0; i < names.length; i++) {
-                final int m = i;
-                l.add(Sheet.item(R.drawable.ic_sort, c.getString(names[i]), Store.sort(c) == m, false, () -> {
-                    Store.setSort(c, m);
-                    changed.run();
-                }));
-            }
+            CharSequence[] labels = new CharSequence[names.length];
+            for (int i = 0; i < names.length; i++) labels[i] = c.getString(names[i]);
+            l.add(Sheet.chips(labels, Store.sort(c), 2, m -> {
+                Store.setSort(c, m);
+                changed.run();
+            }));
             return l;
         });
     }
@@ -88,17 +92,19 @@ public final class Menus {
     }
 
     public static void sleep(final Context c, final Runnable changed) {
+        final int[] mins = {15, 30, 45, 60, 90};
         Sheet.show(c, c.getString(R.string.sleep_timer), () -> {
             List<Sheet.Item> l = new ArrayList<>();
-            for (final int m : new int[]{15, 30, 45, 60, 90}) {
-                l.add(Sheet.item(R.drawable.ic_timer, c.getString(R.string.sleep_min, m), false, false, () -> {
-                    Pb.sleep(m);
-                    if (changed != null) changed.run();
-                    Ui.toast(c, c.getString(R.string.sleep_set, m));
-                }));
-            }
+            CharSequence[] labels = new CharSequence[mins.length];
+            for (int i = 0; i < mins.length; i++) labels[i] = c.getString(R.string.sleep_chip, mins[i]);
+            l.add(Sheet.chips(labels, -1, 3, i -> {
+                Pb.sleep(mins[i]);
+                if (changed != null) changed.run();
+                Ui.toast(c, c.getString(R.string.sleep_set, mins[i]));
+            }));
             if (Pb.sleepAt > 0) {
-                l.add(Sheet.item(R.drawable.ic_delete, c.getString(R.string.sleep_off), false, false, () -> {
+                l.add(Sheet.divider());
+                l.add(Sheet.danger(R.drawable.ic_close, c.getString(R.string.sleep_off), () -> {
                     Pb.sleep(0);
                     if (changed != null) changed.run();
                 }));
@@ -136,12 +142,16 @@ public final class Menus {
             List<Sheet.Item> l = new ArrayList<>();
             MediaController m = Pb.get();
             float cur = m == null ? 1f : m.getPlaybackParameters().speed;
-            for (final float o : opts) {
-                l.add(Sheet.item(R.drawable.ic_play, speedLabel(o), Math.abs(cur - o) < 0.01f, false, () -> {
-                    MediaController mm = Pb.get();
-                    if (mm != null) mm.setPlaybackSpeed(o);
-                }));
+            CharSequence[] labels = new CharSequence[opts.length];
+            int sel = -1;
+            for (int i = 0; i < opts.length; i++) {
+                labels[i] = speedLabel(opts[i]);
+                if (Math.abs(cur - opts[i]) < 0.01f) sel = i;
             }
+            l.add(Sheet.chips(labels, sel, 3, i -> {
+                MediaController mm = Pb.get();
+                if (mm != null) mm.setPlaybackSpeed(opts[i]);
+            }));
             return l;
         });
     }

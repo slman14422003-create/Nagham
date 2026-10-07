@@ -129,6 +129,27 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
         updateEmpty();
     }
 
+    /** Songs added to / removed from the phone while this list is open: keep it in step. */
+    private final Runnable libChanged = () -> {
+        if (ad == null || isFinishing() || isDestroyed()) return;
+        Store.Playlist p = Store.playlist(this, pid);
+        if (p == null) return;
+        ad.setData(Library.resolve(p.ids));
+        updateEmpty();
+    };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Library.addListener(libChanged);
+    }
+
+    @Override
+    protected void onStop() {
+        Library.removeListener(libChanged);
+        super.onStop();
+    }
+
     private void updateEmpty() {
         empty.setVisibility(ad.data.isEmpty() ? View.VISIBLE : View.GONE);
     }

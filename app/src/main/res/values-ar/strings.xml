@@ -22,6 +22,14 @@
         <item quantity="many">%d أغنية</item>
         <item quantity="other">%d أغنية</item>
     </plurals>
+    <plurals name="songs_added">
+        <item quantity="zero">لا أغاني جديدة</item>
+        <item quantity="one">أُضيفت أغنية جديدة</item>
+        <item quantity="two">أُضيفت أغنيتان جديدتان</item>
+        <item quantity="few">أُضيفت %d أغانٍ جديدة</item>
+        <item quantity="many">أُضيفت %d أغنية جديدة</item>
+        <item quantity="other">أُضيفت %d أغنية جديدة</item>
+    </plurals>
 
     <!-- home -->
     <string name="tab_songs">الأغاني</string>
@@ -69,6 +77,7 @@
     <string name="repeat">تكرار</string>
     <string name="sleep_timer">مؤقت النوم</string>
     <string name="sleep_min">%d دقيقة</string>
+    <string name="sleep_chip">%d د</string>
     <string name="sleep_set">سيتوقف التشغيل بعد %d دقيقة</string>
     <string name="sleep_off">إلغاء المؤقت</string>
     <string name="lock_hint">اسحب للأعلى لفتح الجهاز</string>
@@ -86,7 +95,7 @@
     <string name="min_none">لا تجاهل</string>
     <string name="min_sec">%d ثانية</string>
     <string name="rescan">إعادة فحص المكتبة</string>
-    <string name="rescan_sub">يحدّث القائمة بعد إضافة أو حذف ملفات</string>
+    <string name="rescan_sub">أغانيك تتزامن مع الجهاز تلقائياً؛ استخدمه لإعادة قراءة كاملة</string>
     <string name="set_playback">التشغيل</string>
     <string name="skip_silence">تخطي الصمت</string>
     <string name="skip_silence_sub">يتجاوز المقاطع الصامتة داخل المقطع الصوتي</string>

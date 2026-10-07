@@ -40,6 +40,7 @@ public class App extends Application {
         super.onCreate();
         CrashGuard.install(this);
         Accent.applyMode(this);
+        MediaWatcher.start(this);   // songs downloaded or deleted anywhere show up in the app by themselves
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel ch = new NotificationChannel(CH_LOCK, getString(R.string.ch_lock), NotificationManager.IMPORTANCE_HIGH);
             ch.setDescription(getString(R.string.ch_lock_sub));

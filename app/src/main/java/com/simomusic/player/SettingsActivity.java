@@ -268,16 +268,20 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void pickMin() {
+        final int[] secs = {0, 15, 30, 60, 120};
         Sheet.show(this, getString(R.string.set_min_dur), () -> {
             List<Sheet.Item> l = new ArrayList<>();
-            for (final int s : new int[]{0, 15, 30, 60, 120}) {
-                l.add(Sheet.item(R.drawable.ic_timer, s == 0 ? getString(R.string.min_none) : getString(R.string.min_sec, s),
-                        Store.minDur(this) == s, false, () -> {
-                            Store.setMinDur(this, s);
-                            dirty = true;
-                            recreate();
-                        }));
+            CharSequence[] labels = new CharSequence[secs.length];
+            int sel = -1;
+            for (int i = 0; i < secs.length; i++) {
+                labels[i] = secs[i] == 0 ? getString(R.string.min_none) : getString(R.string.min_sec, secs[i]);
+                if (Store.minDur(this) == secs[i]) sel = i;
             }
+            l.add(Sheet.chips(labels, sel, 2, i -> {
+                Store.setMinDur(this, secs[i]);
+                dirty = true;
+                recreate();
+            }));
             return l;
         });
     }

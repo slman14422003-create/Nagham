@@ -18,6 +18,10 @@
         <item quantity="one">%d song</item>
         <item quantity="other">%d songs</item>
     </plurals>
+    <plurals name="songs_added">
+        <item quantity="one">%d new song added</item>
+        <item quantity="other">%d new songs added</item>
+    </plurals>
 
     <!-- home -->
     <string name="tab_songs">Songs</string>
@@ -65,6 +69,7 @@
     <string name="repeat">Repeat</string>
     <string name="sleep_timer">Sleep timer</string>
     <string name="sleep_min">%d minutes</string>
+    <string name="sleep_chip">%d min</string>
     <string name="sleep_set">Playback will stop in %d minutes</string>
     <string name="sleep_off">Turn off timer</string>
     <string name="lock_hint">Swipe up to unlock</string>
@@ -82,7 +87,7 @@
     <string name="min_none">Don\'t ignore</string>
     <string name="min_sec">%d seconds</string>
     <string name="rescan">Rescan library</string>
-    <string name="rescan_sub">Refresh the list after adding or deleting files</string>
+    <string name="rescan_sub">Your songs sync with the phone automatically; use this to force a full re-read</string>
     <string name="set_playback">Playback</string>
     <string name="skip_silence">Skip silence</string>
     <string name="skip_silence_sub">Skips silent parts inside a track</string>

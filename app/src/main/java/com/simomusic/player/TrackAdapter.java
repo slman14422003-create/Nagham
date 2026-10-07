@@ -58,7 +58,10 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
     public void setData(List<Track> list) {
         boolean hdr = header != null;
         boolean same = list.size() == data.size() && hdr == hadHeader;
-        for (int i = 0; same && i < list.size(); i++) same = list.get(i).id == data.get(i).id;
+        for (int i = 0; same && i < list.size(); i++) {
+            Track a = list.get(i), b = data.get(i);
+            same = a.id == b.id && a.title.equals(b.title) && a.artist.equals(b.artist);   // a renamed song redraws too
+        }
         if (same) return;
         hadHeader = hdr;
         data.clear();

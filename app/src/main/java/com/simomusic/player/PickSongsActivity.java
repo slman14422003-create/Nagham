@@ -21,6 +21,7 @@ public class PickSongsActivity extends AppCompatActivity implements TrackAdapter
     private String pid;
     private TrackAdapter ad;
     private Button add;
+    private android.widget.EditText search;
     private final List<Track> pool = new ArrayList<>();
 
     @Override
@@ -44,19 +45,14 @@ public class PickSongsActivity extends AppCompatActivity implements TrackAdapter
         });
         root.addView(Ui.topBar(this, getString(R.string.add_songs), R.drawable.ic_back, all));
 
-        android.widget.EditText search = Ui.searchEdit(this, getString(R.string.search_hint));
+        search = Ui.searchEdit(this, getString(R.string.search_hint));
         search.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int c, int d) { }
             @Override public void onTextChanged(CharSequence s, int a, int c, int d) { }
 
             @Override
             public void afterTextChanged(Editable e) {
-                String q = e.toString().trim().toLowerCase(Locale.getDefault());
-                List<Track> f = new ArrayList<>();
-                for (Track t : pool) {
-                    if (q.isEmpty() || t.title.toLowerCase().contains(q) || (t.artist != null && t.artist.toLowerCase().contains(q))) f.add(t);
-                }
-                ad.setData(f);
+                applyFilter();
             }
         });
         root.addView(search);
@@ -81,6 +77,40 @@ public class PickSongsActivity extends AppCompatActivity implements TrackAdapter
         root.addView(add, lp);
         count();
         setContentView(root);
+    }
+
+    private void applyFilter() {
+        String q = search.getText().toString().trim().toLowerCase(Locale.getDefault());
+        List<Track> f = new ArrayList<>();
+        for (Track t : pool) {
+            if (q.isEmpty() || t.title.toLowerCase().contains(q) || (t.artist != null && t.artist.toLowerCase().contains(q))) f.add(t);
+        }
+        ad.setData(f);
+    }
+
+    /** The phone's songs changed while picking: add the new ones, drop the ones that are gone. */
+    private final Runnable libChanged = () -> {
+        if (ad == null || search == null || isFinishing() || isDestroyed()) return;
+        Store.Playlist p = Store.playlist(this, pid);
+        if (p == null) return;
+        pool.clear();
+        for (Track t : Library.tracks) if (!p.ids.contains(t.id)) pool.add(t);
+        Library.sort(pool, Store.sort(this));
+        ad.selected.retainAll(Library.byId.keySet());
+        applyFilter();
+        count();
+    };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Library.addListener(libChanged);
+    }
+
+    @Override
+    protected void onStop() {
+        Library.removeListener(libChanged);
+        super.onStop();
     }
 
     private void count() {
