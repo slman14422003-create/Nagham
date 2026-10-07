@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         TextView title = Ui.text(this, getString(R.string.app_name), 34, R.color.text_primary);
-        title.setTypeface(Typeface.create("serif", Typeface.NORMAL));
+        title.setTypeface(Ui.titleFace(false));
         subtitle = Ui.text(this, "", 13, R.color.text_secondary);
         titles.addView(title);
         titles.addView(subtitle);

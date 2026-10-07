@@ -43,7 +43,7 @@ public final class BtSheet {
         gp.bottomMargin = Ui.dp(c, 8);
         head.addView(grab, gp);
         TextView t = Ui.text(c, c.getString(R.string.bt_title), 17, R.color.text_primary);
-        t.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        t.setTypeface(Ui.titleFace(true));
         t.setPaddingRelative(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 10));
         head.addView(t);
         root.addView(head);
@@ -91,7 +91,7 @@ public final class BtSheet {
             box.setPadding(Ui.dp(c, 20), Ui.dp(c, 10), Ui.dp(c, 20), Ui.dp(c, 6));
             box.addView(badge(c, false));
             TextView a = Ui.text(c, c.getString(R.string.bt_none), 18, R.color.text_primary);
-            a.setTypeface(Typeface.create("serif", Typeface.BOLD));
+            a.setTypeface(Ui.titleFace(true));
             a.setGravity(Gravity.CENTER);
             LinearLayout.LayoutParams ap = Ui.lp(-1, -2);
             ap.topMargin = Ui.dp(c, 14);
@@ -117,7 +117,7 @@ public final class BtSheet {
         LinearLayout col = new LinearLayout(c);
         col.setOrientation(LinearLayout.VERTICAL);
         TextView nm = Ui.text(c, i.name.isEmpty() ? c.getString(R.string.bt_t_other) : i.name, 20, R.color.text_primary);
-        nm.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        nm.setTypeface(Ui.titleFace(true));
         nm.setMaxLines(2);
         nm.setEllipsize(android.text.TextUtils.TruncateAt.END);
         col.addView(nm);

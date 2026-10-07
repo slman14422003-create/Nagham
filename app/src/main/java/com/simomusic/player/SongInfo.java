@@ -60,7 +60,7 @@ public final class SongInfo {
         gp.bottomMargin = Ui.dp(c, 8);
         head.addView(grab, gp);
         TextView title = Ui.text(c, t.title, 17, R.color.text_primary);
-        title.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        title.setTypeface(Ui.titleFace(true));
         title.setSingleLine(true);
         title.setEllipsize(android.text.TextUtils.TruncateAt.END);
         title.setPaddingRelative(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 10));

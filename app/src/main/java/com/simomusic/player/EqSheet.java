@@ -46,7 +46,7 @@ public final class EqSheet {
         gp.bottomMargin = Ui.dp(c, 8);
         head.addView(grab, gp);
         TextView title = Ui.text(c, c.getString(R.string.eq_title), 17, R.color.text_primary);
-        title.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        title.setTypeface(Ui.titleFace(true));
         title.setPaddingRelative(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 10));
         head.addView(title);
         root.addView(head);

@@ -41,7 +41,7 @@ public final class UpdateSheet {
         gp.bottomMargin = Ui.dp(c, 8);
         head.addView(grab, gp);
         TextView t = Ui.text(c, c.getString(R.string.upd_title), 17, R.color.text_primary);
-        t.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        t.setTypeface(Ui.titleFace(true));
         t.setPaddingRelative(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 10));
         head.addView(t);
         root.addView(head);
@@ -102,7 +102,7 @@ public final class UpdateSheet {
                                   final boolean[] alive, final AtomicBoolean cancel) {
         String ver = info.tag.isEmpty() ? info.name : info.tag;
         TextView title = line(c, c.getString(R.string.upd_available, ver), R.color.accent_text, 18);
-        title.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        title.setTypeface(Ui.titleFace(true));
         body.addView(title);
         if (info.size > 0) {
             body.addView(line(c, String.format(Locale.US, "%.1f MB", info.size / 1048576f), R.color.text_secondary, 13));

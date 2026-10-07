@@ -94,7 +94,7 @@ public final class Sheet {
         head.addView(grab, gp);
 
         TextView t = Ui.text(c, title, 17, R.color.text_primary);
-        t.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        t.setTypeface(Ui.titleFace(true));
         t.setSingleLine(true);
         t.setEllipsize(android.text.TextUtils.TruncateAt.END);
         boolean hasSub = subtitle != null && subtitle.length() > 0;

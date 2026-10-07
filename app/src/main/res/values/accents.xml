@@ -56,4 +56,12 @@
         <item name="nAccentGlow">#24A16207</item>
         <item name="nOnAccent">#FFFFFFFF</item>
     </style>
+    <!-- Replaced by the wallpaper palette on Android 12+ (values-v31); older phones never list it -->
+    <style name="AccentSystem">
+        <item name="nAccent">#FF2F5BE8</item>
+        <item name="nAccentText">#FF2147C7</item>
+        <item name="nAccentSoft">#FFE2E9FF</item>
+        <item name="nAccentGlow">#242F5BE8</item>
+        <item name="nOnAccent">#FFFFFFFF</item>
+    </style>
 </resources>

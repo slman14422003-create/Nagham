@@ -47,6 +47,63 @@ public final class Ui {
         v.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
     }
 
+    // One tactile vocabulary for the whole app. Android 11+ uses the system's own effects, so the phone's
+    // haptic motor (One UI "System vibration" intensity) decides how strong they feel, like in Samsung's apps.
+
+    /** An action went through (favorite on, song changed by a swipe). */
+    public static void confirm(View v) {
+        v.performHapticFeedback(android.os.Build.VERSION.SDK_INT >= 30
+                ? android.view.HapticFeedbackConstants.CONFIRM : android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+    }
+
+    /** A drag has started / has been let go (player sheet, lock-screen swipe). */
+    public static void gestureStart(View v) {
+        v.performHapticFeedback(android.os.Build.VERSION.SDK_INT >= 30
+                ? android.view.HapticFeedbackConstants.GESTURE_START : android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+    }
+
+    public static void gestureEnd(View v) {
+        v.performHapticFeedback(android.os.Build.VERSION.SDK_INT >= 30
+                ? android.view.HapticFeedbackConstants.GESTURE_END : android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+    }
+
+    /** A very light tick while a finger moves over a scale (the seek bar). */
+    public static void tick(View v) {
+        v.performHapticFeedback(android.os.Build.VERSION.SDK_INT >= 34
+                ? android.view.HapticFeedbackConstants.SEGMENT_FREQUENT_TICK : android.view.HapticFeedbackConstants.CLOCK_TICK);
+    }
+
+    /**
+     * Titles use the phone's own system font (One UI Sans, or whatever font the user picked in Settings > Font style),
+     * so the app reads like part of One UI instead of carrying its own typeface.
+     */
+    public static Typeface titleFace(boolean bold) {
+        if (android.os.Build.VERSION.SDK_INT >= 28) return Typeface.create(Typeface.DEFAULT, bold ? 700 : 400, false);
+        return Typeface.create(Typeface.DEFAULT, bold ? Typeface.BOLD : Typeface.NORMAL);
+    }
+
+    public static boolean isNight(Context c) {
+        return (c.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    /**
+     * Status bar and navigation bar icons. Dark screens (the player and the lock screen sit on cover art, always dark)
+     * need light icons, light screens need dark ones; with the wrong pair the clock and battery disappear.
+     * The status bar is also explicitly shown, so a screen can never leave it hidden.
+     */
+    public static void bars(android.app.Activity a, boolean darkScreen) {
+        try {
+            android.view.Window w = a.getWindow();
+            androidx.core.view.WindowInsetsControllerCompat ic = androidx.core.view.WindowCompat.getInsetsController(w, w.getDecorView());
+            ic.setAppearanceLightStatusBars(!darkScreen);
+            ic.setAppearanceLightNavigationBars(!darkScreen);
+            ic.show(androidx.core.view.WindowInsetsCompat.Type.statusBars());
+        } catch (RuntimeException e) {
+            CrashGuard.nonFatal("system bars", e);
+        }
+    }
+
     public static View.OnClickListener haptic(final View.OnClickListener l) {
         return v -> {
             tap(v);
@@ -93,6 +150,8 @@ public final class Ui {
         android.util.TypedValue tv = new android.util.TypedValue();
         int g = 0x334477FF;
         if (c.getTheme().resolveAttribute(R.attr.nAccentGlow, tv, true)) g = tv.data;
+        // the system (wallpaper) accent hands over an opaque color: give it the same soft strength as the fixed ones
+        if ((g >>> 24) == 0xFF) g = (g & 0x00FFFFFF) | (isNight(c) ? 0x4A000000 : 0x24000000);
         GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{g, g & 0x00FFFFFF});
         android.graphics.drawable.LayerDrawable ld = new android.graphics.drawable.LayerDrawable(
                 new android.graphics.drawable.Drawable[]{new android.graphics.drawable.ColorDrawable(color(c, R.color.bg)), gd});
@@ -139,7 +198,11 @@ public final class Ui {
         }
         a.getWindow().setStatusBarColor(0);
         a.getWindow().setNavigationBarColor(0);
-        if (android.os.Build.VERSION.SDK_INT >= 29) a.getWindow().setNavigationBarContrastEnforced(false);
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            a.getWindow().setNavigationBarContrastEnforced(false);
+            a.getWindow().setStatusBarContrastEnforced(false);   // One UI must not add its own scrim behind our top bar
+        }
+        bars(a, isNight(a));
         final int l = content.getPaddingLeft(), t = content.getPaddingTop(), r = content.getPaddingRight(), b = content.getPaddingBottom();
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(content, (v, insets) -> {
             androidx.core.graphics.Insets bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()
@@ -343,7 +406,7 @@ public final class Ui {
         bar.setPadding(dp(a, 12), dp(a, 10), dp(a, 12), dp(a, 8));
         bar.addView(icon(a, backIcon, R.string.back, v -> a.finish()));
         TextView t = text(a, title, 20, R.color.text_primary);
-        t.setTypeface(Typeface.create("serif", Typeface.NORMAL));
+        t.setTypeface(Ui.titleFace(false));
         t.setGravity(Gravity.CENTER);
         t.setSingleLine(true);
         t.setEllipsize(android.text.TextUtils.TruncateAt.END);

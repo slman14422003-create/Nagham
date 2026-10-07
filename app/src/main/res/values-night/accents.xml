@@ -56,4 +56,11 @@
         <item name="nAccentGlow">#4AFACC15</item>
         <item name="nOnAccent">#FF000000</item>
     </style>
+    <style name="AccentSystem">
+        <item name="nAccent">#FF3D6BFF</item>
+        <item name="nAccentText">#FF9EB6FF</item>
+        <item name="nAccentSoft">#FF0E1A40</item>
+        <item name="nAccentGlow">#4A3D6BFF</item>
+        <item name="nOnAccent">#FFFFFFFF</item>
+    </style>
 </resources>

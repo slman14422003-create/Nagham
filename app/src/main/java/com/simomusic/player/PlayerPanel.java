@@ -24,6 +24,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.dynamicanimation.animation.DynamicAnimation;
+import androidx.dynamicanimation.animation.SpringAnimation;
+import androidx.dynamicanimation.animation.SpringForce;
 import androidx.media3.session.MediaController;
 
 /**
@@ -51,7 +54,9 @@ public final class PlayerPanel extends FrameLayout {
     private View parBg, parGlow;   // parallax layers
     private float collapsedY = 1000f, radius, downX, downY, startRaw;
     private boolean expanded, tracking, onSeek;
-    private ValueAnimator anim;
+    private SpringAnimation anim;
+    private float releaseVy;      // finger speed at the moment of letting go: the spring carries it on, no sudden stop
+    private int barsState = -1;
     private VelocityTracker vt;
 
     @SuppressLint("ClickableViewAccessibility")
@@ -91,6 +96,17 @@ public final class PlayerPanel extends FrameLayout {
         col.setOrientation(LinearLayout.VERTICAL);
         col.setPadding(Ui.dp(a, 22), Ui.dp(a, 8), Ui.dp(a, 22), Ui.dp(a, 18));
 
+        // grab handle, like every One UI sheet: it says "pull me down", and the whole screen answers to that gesture
+        View grab = new View(d);
+        android.graphics.drawable.GradientDrawable gh = new android.graphics.drawable.GradientDrawable();
+        gh.setColor(0x66FFFFFF);
+        gh.setCornerRadius(Ui.dp(a, 3));
+        grab.setBackground(gh);
+        LinearLayout.LayoutParams ghp = new LinearLayout.LayoutParams(Ui.dp(a, 40), Ui.dp(a, 5));
+        ghp.gravity = Gravity.CENTER_HORIZONTAL;
+        ghp.topMargin = Ui.dp(a, 2);
+        col.addView(grab, ghp);
+
         LinearLayout top = new LinearLayout(d);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.addView(Ui.icon(d, R.drawable.ic_arrow_down, R.string.close, v -> collapse(true)));
@@ -128,27 +144,37 @@ public final class PlayerPanel extends FrameLayout {
         cp.topMargin = Ui.dp(a, 4);
         col.addView(np.controls, cp);
 
+        // Bottom row, right under the transport buttons (the easiest place for the thumb): shuffle, add, queue, Bluetooth,
+        // timer, repeat. Nothing important sits only at the top of the screen.
         LinearLayout extras = new LinearLayout(d);
-        extras.setGravity(Gravity.CENTER);
+        extras.setGravity(Gravity.CENTER_VERTICAL);
         timer = Ui.icon(d, R.drawable.ic_timer, R.string.sleep_timer, v -> Menus.sleep(a, this::refreshExtras));
         bt = Ui.icon(d, R.drawable.ic_bluetooth, R.string.bt_title, v -> BtSheet.show(a));
+        for (ImageButton b : new ImageButton[]{np.shuffle, np.repeat}) {     // same round look as the other four
+            b.setBackgroundResource(R.drawable.bg_icon_btn);
+            b.setScaleType(ImageView.ScaleType.CENTER);
+            b.setPadding(0, 0, 0, 0);
+        }
         View[] ex = {
+                np.shuffle,
                 Ui.icon(d, R.drawable.ic_add, R.string.add_to_playlist, v -> {
                     long id = Pb.currentId();
                     if (id >= 0) Menus.addToPlaylist(a, id, () -> heart(false));
                 }),
                 Ui.icon(d, R.drawable.ic_list, R.string.up_next, v -> Menus.queue(a)),
                 bt,
-                timer};
-        for (View v : ex) {
-            LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) v.getLayoutParams();
-            p.width = Ui.dp(a, 52);
-            p.height = Ui.dp(a, 52);
-            p.setMargins(Ui.dp(a, 6), 0, Ui.dp(a, 6), 0);
-            extras.addView(v);
+                timer,
+                np.repeat};
+        for (int i = 0; i < ex.length; i++) {
+            if (i > 0) extras.addView(Ui.space(d, 1f));
+            ex[i].setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(a, 46), Ui.dp(a, 46)));
+            extras.addView(ex[i]);
         }
-        LinearLayout.LayoutParams xp = Ui.lp(-1, -2);
-        xp.topMargin = Ui.dp(a, 18);
+        // one compact group in the middle, not stretched over a wide screen
+        int avail = a.getResources().getDisplayMetrics().widthPixels - Ui.dp(a, 44);
+        LinearLayout.LayoutParams xp = Ui.lp(Math.min(avail, Ui.dp(a, 340)), -2);
+        xp.gravity = Gravity.CENTER_HORIZONTAL;
+        xp.topMargin = Ui.dp(a, 16);
         col.addView(extras, xp);
 
         addView(col, new LayoutParams(-1, -1));
@@ -193,6 +219,7 @@ public final class PlayerPanel extends FrameLayout {
     }
 
     public void endDrag(float vy) {
+        releaseVy = vy;
         float f = 1f - getTranslationY() / collapsedY;
         if (vy < -900f || (vy < 900f && f > 0.35f)) expand(true);
         else collapse(true);
@@ -250,31 +277,27 @@ public final class PlayerPanel extends FrameLayout {
         return expanded || (getVisibility() == VISIBLE && anim != null && anim.isRunning());
     }
 
-    private void animateTo(float target, long dur, final Runnable end) {
+    /**
+     * Spring physics instead of a fixed-time curve: the sheet keeps the speed of the finger that threw it, can be caught
+     * again at any moment without a jump, and settles the way One UI's own sheets do.
+     */
+    private void animateTo(final float target, long unusedDuration, final Runnable end) {
         if (anim != null) anim.cancel();
-        anim = ValueAnimator.ofFloat(getTranslationY(), target);
-        anim.setDuration(dur);
-        anim.setInterpolator(new android.view.animation.PathInterpolator(0.05f, 0.7f, 0.1f, 1f));
-        anim.addUpdateListener(a -> {
-            setTranslationY((Float) a.getAnimatedValue());
+        final SpringAnimation sa = new SpringAnimation(this, DynamicAnimation.TRANSLATION_Y, target);
+        sa.getSpring().setStiffness(target == 0f ? 380f : 520f).setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY);
+        sa.setStartVelocity(releaseVy);
+        releaseVy = 0f;
+        sa.setMinimumVisibleChange(DynamicAnimation.MIN_VISIBLE_CHANGE_PIXELS);
+        sa.addUpdateListener((animation, value, velocity) -> applyProgress());
+        sa.addEndListener((animation, canceled, value, velocity) -> {
+            if (canceled) return;
+            setTranslationY(target);
             applyProgress();
+            layer(false);
+            if (end != null) end.run();
         });
-        anim.addListener(new AnimatorListenerAdapter() {
-            boolean canceled;
-
-            @Override
-            public void onAnimationCancel(Animator a) {
-                canceled = true;
-            }
-
-            @Override
-            public void onAnimationEnd(Animator a) {
-                if (canceled) return;
-                layer(false);
-                if (end != null) end.run();
-            }
-        });
-        anim.start();
+        anim = sa;
+        sa.start();
     }
 
     /** One place derives everything from how far the sheet is open: fade, corner radius, what is behind. */
@@ -296,7 +319,16 @@ public final class PlayerPanel extends FrameLayout {
         float sc = 0.95f + 0.05f * f;
         col.setScaleX(sc);
         col.setScaleY(sc);
+        barsFor(f);
         host.onProgress(f);
+    }
+
+    /** The open player is always dark: light status-bar icons while it covers the screen, the theme's own when it is gone. */
+    private void barsFor(float f) {
+        int want = f > 0.45f ? 1 : 0;
+        if (want == barsState) return;
+        barsState = want;
+        Ui.bars(act, want == 1 || Ui.isNight(act));
     }
 
     private void heart(boolean animate) {
@@ -304,7 +336,10 @@ public final class PlayerPanel extends FrameLayout {
         boolean on = id >= 0 && Store.has(act, Store.FAV, id);
         fav.setImageResource(on ? R.drawable.ic_heart_fill : R.drawable.ic_heart);
         Ui.tint(fav, on ? R.color.accent_text : R.color.text_primary);
-        if (animate && on) Ui.pop(fav);
+        if (animate && on) {
+            Ui.pop(fav);
+            Ui.confirm(fav);
+        }
     }
 
     private void refreshExtras() {
@@ -389,6 +424,7 @@ public final class PlayerPanel extends FrameLayout {
     private void startTracking(MotionEvent e) {
         tracking = true;
         if (anim != null) anim.cancel();
+        Ui.gestureStart(this);
         layer(true);
         // keep the sheet exactly under the finger: no jump when it is caught mid-animation
         startRaw = e.getRawY() - getTranslationY();
@@ -425,6 +461,8 @@ public final class PlayerPanel extends FrameLayout {
                         vy = vt.getYVelocity();
                     }
                     tracking = false;
+                    releaseVy = vy;
+                    Ui.gestureEnd(this);
                     boolean closing = e.getActionMasked() == MotionEvent.ACTION_UP
                             && (vy > 900f || (vy > -900f && getTranslationY() > collapsedY * 0.28f));
                     if (closing) collapse(true);
@@ -591,7 +629,7 @@ public final class PlayerPanel extends FrameLayout {
     private void commitSwipe(final View v, final boolean next) {
         final float w = v.getWidth(), dir = next ? -1f : 1f;
         np.quietArt = true;
-        Ui.tap(v);
+        Ui.confirm(v);
         v.animate().translationX(dir * w * 1.15f).rotation(dir * 14f).alpha(0f).setDuration(170)
                 .setInterpolator(new AccelerateInterpolator()).withEndAction(() -> {
                     MediaController m = Pb.get();

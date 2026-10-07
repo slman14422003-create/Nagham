@@ -71,7 +71,7 @@ public final class Dlg {
         root.setPaddingRelative(Ui.dp(c, 24), Ui.dp(c, 24), Ui.dp(c, 24), Ui.dp(c, 20));
         if (title != null) {
             TextView t = Ui.text(c, title, 22, R.color.text_primary);
-            t.setTypeface(Typeface.create("serif", Typeface.BOLD));
+            t.setTypeface(Ui.titleFace(true));
             root.addView(t, Ui.lp(-1, -2));
         }
         if (message != null) {

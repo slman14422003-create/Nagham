@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AccentSystem">
+        <item name="nAccent">@android:color/system_accent1_400</item>
+        <item name="nAccentText">@android:color/system_accent1_200</item>
+        <item name="nAccentSoft">@android:color/system_accent1_900</item>
+        <item name="nAccentGlow">@android:color/system_accent1_400</item>
+        <item name="nOnAccent">@android:color/system_accent1_1000</item>
+    </style>
+</resources>

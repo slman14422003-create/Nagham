@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material You palette of the phone (One UI: Settings > Wallpaper and style > Color palette) -->
+    <style name="AccentSystem">
+        <item name="nAccent">@android:color/system_accent1_600</item>
+        <item name="nAccentText">@android:color/system_accent1_700</item>
+        <item name="nAccentSoft">@android:color/system_accent1_100</item>
+        <item name="nAccentGlow">@android:color/system_accent1_600</item>
+        <item name="nOnAccent">@android:color/white</item>
+    </style>
+</resources>

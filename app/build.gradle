@@ -57,6 +57,11 @@ dependencies {
     implementation 'androidx.core:core-splashscreen:1.0.1'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    // One UI 8.5 / Android 16 harmony:
+    //  - core: WindowInsetsControllerCompat (status / navigation bar icon colors that always stay readable)
+    //  - dynamicanimation: spring physics, the same fluid "grab and throw" feel as One UI sheets
+    implementation 'androidx.core:core:1.16.0'
+    implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     // Playback: ExoPlayer (MP3, AAC/M4A, FLAC, OGG, OPUS, WAV, AMR, MKA...) + MediaSession service
     implementation 'androidx.media3:media3-exoplayer:1.8.0'
     implementation 'androidx.media3:media3-session:1.8.0'

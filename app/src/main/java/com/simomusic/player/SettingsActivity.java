@@ -64,17 +64,21 @@ public class SettingsActivity extends AppCompatActivity {
         boolean night = (getResources().getConfiguration().uiMode
                 & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
         int sel = Accent.index(this);
-        for (int row = 0; row < 2; row++) {
+        for (int row = 0; row < (Accent.count() + 3) / 4; row++) {
             LinearLayout r = new LinearLayout(this);
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
             rp.topMargin = Ui.dp(this, 12);
             for (int k = 0; k < 4; k++) {
                 final int i = row * 4 + k;
+                if (i >= Accent.count()) {      // last row is shorter: keep the dots aligned with the rows above
+                    r.addView(new View(this), new LinearLayout.LayoutParams(0, Ui.dp(this, 50), 1f));
+                    continue;
+                }
                 FrameLayout cell = new FrameLayout(this);
                 View dot = new View(this);
                 android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
                 g.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-                g.setColor(Accent.SWATCH[i][night ? 1 : 0]);
+                g.setColor(Accent.swatch(this, i, night));
                 if (i == sel) g.setStroke(Ui.dp(this, 3), Ui.color(this, R.color.text_primary));
                 else g.setStroke(Ui.dp(this, 1), Ui.color(this, R.color.stroke));
                 dot.setBackground(g);

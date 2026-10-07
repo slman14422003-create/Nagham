@@ -65,7 +65,7 @@ public final class QueueSheet {
         LinearLayout col = new LinearLayout(c);
         col.setOrientation(LinearLayout.VERTICAL);
         TextView title = Ui.text(c, c.getString(R.string.up_next), 22, R.color.text_primary);
-        title.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        title.setTypeface(Ui.titleFace(true));
         TextView hint = Ui.text(c, c.getString(R.string.queue_hint), 12, R.color.text_secondary);
         hint.setPadding(0, Ui.dp(c, 3), 0, 0);
         col.addView(title);

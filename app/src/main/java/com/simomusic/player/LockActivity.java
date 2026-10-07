@@ -190,6 +190,7 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
                 Math.min(getResources().getDisplayMetrics().widthPixels, Ui.dp(this, 520)), -1, Gravity.CENTER_HORIZONTAL));
         setContentView(root);
         Ui.edgeToEdge(this, content);
+        Ui.bars(this, true);       // the lock screen is always dark: white clock / battery icons, status bar always shown
 
         np.artCb = u -> Backdrop.set(this, bg, Store.flag(this, "lock_blur", true) ? u : null);
         setupSwipe(root);
@@ -267,7 +268,16 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
                 case MotionEvent.ACTION_MOVE: {
                     if (vt[0] == null) return true;
                     vt[0].addMovement(e);
-                    float dy = Math.min(0, e.getRawY() - y0[0]);
+                    float raw = e.getRawY() - y0[0];
+                    if (raw > 0) {
+                        // pulling down (reachable with the thumb) closes this screen: it follows the finger a little
+                        parallax(0f);
+                        content.setTranslationY(raw * 0.45f);
+                        content.setAlpha(Math.max(0.4f, 1f - raw / Ui.dp(this, 700)));
+                        return true;
+                    }
+                    float dy = raw;
+                    content.setTranslationY(0f);
                     parallax(dy);
                     content.setAlpha(Math.max(0.3f, 1f + dy / Ui.dp(this, 560)));
                     return true;
@@ -285,7 +295,10 @@ public class LockActivity extends AppCompatActivity implements FullBleed {
                     boolean up = e.getActionMasked() == MotionEvent.ACTION_UP;
                     float dist = e.getRawY() - y0[0];
                     if (up && (dist < -Ui.dp(this, 140) || (vy < -1400f && dist < -Ui.dp(this, 40)))) unlock();
-                    else reset();
+                    else if (up && (dist > Ui.dp(this, 120) || (vy > 1400f && dist > Ui.dp(this, 40)))) {
+                        Ui.confirm(content);
+                        finish();
+                    } else reset();
                     return true;
                 }
                 default:

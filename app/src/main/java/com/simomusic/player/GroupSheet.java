@@ -44,7 +44,7 @@ public final class GroupSheet {
         gp.bottomMargin = Ui.dp(c, 8);
         head.addView(grab, gp);
         TextView t = Ui.text(c, c.getString(R.string.grp_title), 17, R.color.text_primary);
-        t.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        t.setTypeface(Ui.titleFace(true));
         t.setPaddingRelative(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 10));
         head.addView(t);
         root.addView(head);

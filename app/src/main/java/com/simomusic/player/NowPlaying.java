@@ -35,7 +35,9 @@ public final class NowPlaying implements Player.Listener {
     public final LinearLayout info, seekBlock, controls;
     private final TextView title, artist, cur, total;
     private final SeekBar seek;
-    private final ImageButton play, shuffle, repeat;
+    private final ImageButton play;
+    /** Not part of the transport row: the full player puts them in its bottom row, close to the thumb. */
+    public final ImageButton shuffle, repeat;
     /** Hosts (player, lock screen) get the colour picked from the cover; 0 = grey / no cover. */
     public java.util.function.IntConsumer onTint;
     private int tintShown = 0xFFFFFFFF;
@@ -43,6 +45,7 @@ public final class NowPlaying implements Player.Listener {
     private TextView upNext;
     private boolean remain;
     private boolean drag;
+    private long lastTick;
     /** After letting go, ignore the player's old position until it has actually jumped (no flicker back). */
     private long pendingSeek = -1, pendingUntil;
     private String lastArt = "\u0000";
@@ -81,7 +84,7 @@ public final class NowPlaying implements Player.Listener {
         info = new LinearLayout(c);
         info.setOrientation(LinearLayout.VERTICAL);
         title = Ui.text(c, "", lock ? 22 : 26, R.color.text_primary);
-        title.setTypeface(Typeface.create("serif", Typeface.BOLD));
+        title.setTypeface(Ui.titleFace(true));
         title.setMaxLines(2);
         title.setEllipsize(android.text.TextUtils.TruncateAt.END);
         title.setLineSpacing(0, 1.05f);
@@ -119,6 +122,11 @@ public final class NowPlaying implements Player.Listener {
             @Override
             public void onProgressChanged(SeekBar s, int p, boolean user) {
                 if (user) {
+                    long step = p / 5000;       // a light tick every 5 seconds the thumb passes, like scrubbing a ruler
+                    if (step != lastTick) {
+                        lastTick = step;
+                        Ui.tick(s);
+                    }
                     cur.setText(Fmt.time(p));
                     if (remain) total.setText("-" + Fmt.time(Math.max(0, s.getMax() - p)));
                 }
@@ -128,7 +136,8 @@ public final class NowPlaying implements Player.Listener {
             public void onStartTrackingTouch(SeekBar s) {
                 drag = true;
                 pendingSeek = -1;
-                Ui.tap(s);
+                lastTick = s.getProgress() / 5000;
+                Ui.gestureStart(s);
                 cur.setTextColor(Ui.color(c, R.color.accent_text));
                 cur.animate().scaleX(1.18f).scaleY(1.18f).setDuration(120).start();
                 s.animate().scaleY(1.35f).setDuration(120).start();
@@ -138,6 +147,7 @@ public final class NowPlaying implements Player.Listener {
             @Override
             public void onStopTrackingTouch(SeekBar s) {
                 drag = false;
+                Ui.gestureEnd(s);
                 cur.setTextColor(Ui.color(c, R.color.text_secondary));
                 cur.animate().scaleX(1f).scaleY(1f).setDuration(160).start();
                 s.animate().scaleY(1f).setDuration(160).start();
@@ -180,12 +190,14 @@ public final class NowPlaying implements Player.Listener {
 
         controls = new LinearLayout(c);
         controls.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        controls.setGravity(Gravity.CENTER_VERTICAL);
+        // previous / play / next sit together in the middle, a thumb's width apart, instead of spreading over the whole
+        // screen width: every one of them is reachable with one hand without moving the grip
+        controls.setGravity(Gravity.CENTER);
         shuffle = Ui.flat(c, R.drawable.ic_shuffle, 48, R.string.shuffle, v -> {
             MediaController m = Pb.get();
             if (m != null) m.setShuffleModeEnabled(!m.getShuffleModeEnabled());
         });
-        ImageButton prev = Ui.flat(c, R.drawable.ic_prev, 60, R.string.previous, v -> {
+        ImageButton prev = Ui.flat(c, R.drawable.ic_prev, 64, R.string.previous, v -> {
             MediaController m = Pb.get();
             if (m != null) m.seekToPrevious();
         });
@@ -199,7 +211,7 @@ public final class NowPlaying implements Player.Listener {
                 m.play();
             }
         });
-        ImageButton next = Ui.flat(c, R.drawable.ic_next, 60, R.string.next, v -> {
+        ImageButton next = Ui.flat(c, R.drawable.ic_next, 64, R.string.next, v -> {
             MediaController m = Pb.get();
             if (m != null) m.seekToNext();
         });
@@ -210,9 +222,9 @@ public final class NowPlaying implements Player.Listener {
             m.setRepeatMode(r == Player.REPEAT_MODE_OFF ? Player.REPEAT_MODE_ALL
                     : r == Player.REPEAT_MODE_ALL ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
         });
-        View[] set = lock ? new View[]{prev, play, next} : new View[]{shuffle, prev, play, next, repeat};
+        View[] set = {prev, play, next};
         for (int i = 0; i < set.length; i++) {
-            if (i > 0) controls.addView(Ui.space(c, 1f));
+            if (i > 0) controls.addView(new android.widget.Space(c), new LinearLayout.LayoutParams(Ui.dp(c, 14), 1));
             controls.addView(set[i]);
         }
         Art.show(art, null, artPx);
