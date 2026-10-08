@@ -6,10 +6,10 @@ import android.net.Uri;
 public final class Track {
     public final long id;
     public final Uri uri;
-    public final String title, artist, album, ext, key;
+    public final String title, artist, album, ext, key, folder;
     public final long duration, added;
 
-    public Track(long id, Uri uri, String title, String artist, String album, String ext, long duration, long added) {
+    public Track(long id, Uri uri, String title, String artist, String album, String ext, long duration, long added, String folder) {
         this.id = id;
         this.uri = uri;
         this.title = title;
@@ -18,6 +18,7 @@ public final class Track {
         this.ext = ext;
         this.duration = duration;
         this.added = added;
+        this.folder = folder == null ? "" : folder;
         this.key = (title + " " + artist + " " + album).toLowerCase();
     }
 }

@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     private int tab = 0;
     private boolean animateNext = true;
     private String query = "";
+    private final android.os.Handler searchHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable searchRefresh = this::refresh;
     private List<Track> shown = new ArrayList<>();
 
     private final ActivityResultLauncher<String[]> askPerms =
@@ -196,7 +198,9 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
             @Override
             public void afterTextChanged(Editable e) {
                 query = e.toString().trim().toLowerCase(Locale.getDefault());
-                refresh();
+                // debounced: filtering a big library on every keystroke was a real source of typing lag
+                searchHandler.removeCallbacks(searchRefresh);
+                searchHandler.postDelayed(searchRefresh, 150);
             }
         });
         root.addView(search);
@@ -455,6 +459,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     protected void onStop() {
         Pb.remove(current);
         Library.removeListener(libChanged);
+        searchHandler.removeCallbacks(searchRefresh);
         mini.stop();
         panel.onHostStop();
         super.onStop();
@@ -496,7 +501,9 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
             } else {
                 final Store.Playlist pl = Store.playlists(MainActivity.this).get(pos - 1);
                 int cnt = Library.count(pl.ids);
-                row = Ui.settingRow(MainActivity.this, Store.FAV.equals(pl.id) ? R.drawable.ic_heart_fill : R.drawable.ic_list,
+                int ic = Store.FAV.equals(pl.id) ? R.drawable.ic_heart_fill
+                        : Store.AI.equals(pl.id) ? R.drawable.ic_ai : R.drawable.ic_list;
+                row = Ui.settingRow(MainActivity.this, ic,
                         pl.name, getResources().getQuantityString(R.plurals.songs_n, cnt, cnt), null, false, v -> {
                             Intent i = new Intent(MainActivity.this, PlaylistActivity.class);
                             i.putExtra("pid", pl.id);

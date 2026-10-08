@@ -48,6 +48,9 @@
     <string name="favorite">Add to favorites</string>
     <string name="unfavorite">Remove from favorites</string>
     <string name="favorites">Favorites</string>
+    <string name="set_ringtone">Set as ringtone</string>
+    <string name="ringtone_set">Ringtone set to \"%s\"</string>
+    <string name="ringtone_failed">Couldn\'t set the ringtone</string>
     <string name="new_playlist">New playlist</string>
     <string name="playlist_name">Playlist name</string>
     <string name="add_songs">Add songs</string>
@@ -86,8 +89,24 @@
     <string name="set_min_dur">Ignore files shorter than</string>
     <string name="min_none">Don\'t ignore</string>
     <string name="min_sec">%d seconds</string>
+    <string name="hide_folders">Hide folders</string>
+    <string name="hide_folders_empty">No folders found yet — scan your library first</string>
+    <string name="no_folders_hidden">All folders shown</string>
+    <plurals name="folders_hidden_n">
+        <item quantity="one">%d folder hidden</item>
+        <item quantity="other">%d folders hidden</item>
+    </plurals>
     <string name="rescan">Rescan library</string>
     <string name="rescan_sub">Your songs sync with the phone automatically; use this to force a full re-read</string>
+    <string name="set_ai">Local AI</string>
+    <string name="ai_mix">AI Mix</string>
+    <string name="ai_enable">AI Mix</string>
+    <string name="ai_enable_sub">Learns what you actually listen to, entirely on this device, and builds a playlist for you. Nothing is ever sent anywhere; turning it off erases what it learned.</string>
+    <string name="ai_regenerate">Refresh AI Mix</string>
+    <string name="ai_regenerate_sub">Rebuild it now using your latest listening</string>
+    <string name="ai_regenerated">AI Mix updated</string>
+    <string name="ai_disable">Turn off AI Mix</string>
+    <string name="ai_empty">Play a few songs and the AI Mix will start learning your taste</string>
     <string name="set_playback">Playback</string>
     <string name="skip_silence">Skip silence</string>
     <string name="skip_silence_sub">Skips silent parts inside a track</string>
@@ -110,6 +129,8 @@
     <string name="perm_battery_sub">So playback isn\'t stopped in the background</string>
     <string name="perm_bt">Bluetooth headsets</string>
     <string name="perm_bt_sub">Headset and car buttons, and the song name display</string>
+    <string name="perm_write_settings">Modify system settings</string>
+    <string name="perm_write_settings_sub">Needed once to set a song as your ringtone</string>
 
     <string name="perm_open">Open</string>
     <string name="perm_xiaomi">Xiaomi: show on lock screen</string>

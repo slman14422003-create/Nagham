@@ -31,6 +31,9 @@ public final class Library {
     public static final Map<Long, Track> byId = new ConcurrentHashMap<>();
     public static volatile boolean loaded;
 
+    /** Every folder that holds at least one recognised audio file, regardless of the hide-folder setting in Settings. */
+    public static volatile List<String> allFolders = new ArrayList<>();
+
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final ExecutorService EX = Executors.newSingleThreadExecutor();
     private static final List<Runnable> WAITERS = new ArrayList<>();
@@ -99,6 +102,12 @@ public final class Library {
                     again = false;
                 }
                 read(c);
+                try {
+                    // warm the sort cache here, off the UI thread, so the first frame after a scan never
+                    // has to sort the whole library while the user is watching
+                    sorted(Store.sort(c));
+                } catch (RuntimeException ignored) {
+                }
                 synchronized (Library.class) {
                     rerun = again;
                 }
@@ -124,12 +133,15 @@ public final class Library {
         List<Track> out = new ArrayList<>();
         boolean ok = true;
         boolean access = Perms.hasAudio(c);
+        Set<String> seenFolders = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         if (access) {
             Set<String> allowed = Store.enabledExts(c);
             long minMs = Store.minDur(c) * 1000L;
+            boolean relPath = Build.VERSION.SDK_INT >= 29;
+            String pathCol = relPath ? MediaStore.Audio.Media.RELATIVE_PATH : MediaStore.Audio.Media.DATA;
             String[] proj = {MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST,
                     MediaStore.Audio.Media.ALBUM, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.DATE_ADDED,
-                    MediaStore.Audio.Media.DISPLAY_NAME};
+                    MediaStore.Audio.Media.DISPLAY_NAME, pathCol};
             String sel = MediaStore.Audio.Media.IS_RINGTONE + "=0 AND " + MediaStore.Audio.Media.IS_NOTIFICATION
                     + "=0 AND " + MediaStore.Audio.Media.IS_ALARM + "=0";
             try (Cursor q = c.getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, proj, sel, null, null)) {
@@ -148,8 +160,10 @@ public final class Library {
                         if (artist == null || "<unknown>".equals(artist)) artist = "";
                         else artist = Fmt.fix(artist);
                         String album = q.getString(3) == null ? "" : Fmt.fix(q.getString(3));
+                        String folder = folderOf(q.getString(7), relPath);
+                        seenFolders.add(folder);
                         out.add(new Track(id, ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id),
-                                title, artist, album, ext, dur, q.getLong(5)));
+                                title, artist, album, ext, dur, q.getLong(5), folder));
                     }
                 }
             } catch (Exception e) {
@@ -160,6 +174,13 @@ public final class Library {
         }
         lastScanAt = SystemClock.elapsedRealtime();
         if (!ok && loaded) return;
+        if (access && ok) allFolders = new ArrayList<>(seenFolders);
+        Set<String> hidden = Store.hiddenFolders(c);
+        if (!hidden.isEmpty()) {
+            List<Track> visible = new ArrayList<>(out.size());
+            for (Track t : out) if (!hidden.contains(t.folder)) visible.add(t);
+            out = visible;
+        }
 
         List<Track> before = tracks;
         boolean changed = !loaded || !sameList(before, out);
@@ -190,9 +211,26 @@ public final class Library {
         for (int i = 0; i < a.size(); i++) {
             Track x = a.get(i), y = b.get(i);
             if (x.id != y.id || x.duration != y.duration || !x.title.equals(y.title) || !x.artist.equals(y.artist)
-                    || !x.album.equals(y.album)) return false;
+                    || !x.album.equals(y.album) || !x.folder.equals(y.folder)) return false;
         }
         return true;
+    }
+
+    /** Android 10+: MediaStore gives a tidy "Music/Subfolder/" path. Older versions only give the raw file path. */
+    private static String folderOf(String raw, boolean relativePath) {
+        String folder;
+        if (relativePath) {
+            folder = raw == null ? "" : raw;
+            if (folder.endsWith("/") && folder.length() > 1) folder = folder.substring(0, folder.length() - 1);
+        } else {
+            if (raw == null) {
+                folder = "";
+            } else {
+                int slash = raw.lastIndexOf('/');
+                folder = slash > 0 ? raw.substring(0, slash) : "";
+            }
+        }
+        return folder.isEmpty() ? "/" : folder;
     }
 
     /**

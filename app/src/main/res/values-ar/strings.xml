@@ -55,6 +55,9 @@
     <string name="add_to_playlist">إضافة إلى قائمة</string>
     <string name="favorite">إضافة إلى المفضلة</string>
     <string name="unfavorite">إزالة من المفضلة</string>
+    <string name="set_ringtone">تعيين كنغمة رنين</string>
+    <string name="ringtone_set">تم تعيين نغمة الرنين إلى \"%s\"</string>
+    <string name="ringtone_failed">تعذّر تعيين نغمة الرنين</string>
     <string name="favorites">المفضلة</string>
     <string name="new_playlist">قائمة جديدة</string>
     <string name="playlist_name">اسم القائمة</string>
@@ -94,8 +97,28 @@
     <string name="set_min_dur">تجاهل الملفات الأقصر من</string>
     <string name="min_none">لا تجاهل</string>
     <string name="min_sec">%d ثانية</string>
+    <string name="hide_folders">إخفاء المجلدات</string>
+    <string name="hide_folders_empty">لم يتم العثور على مجلدات بعد — امسح مكتبتك أولًا</string>
+    <string name="no_folders_hidden">كل المجلدات ظاهرة</string>
+    <plurals name="folders_hidden_n">
+        <item quantity="zero">لا مجلدات مخفية</item>
+        <item quantity="one">مجلد واحد مخفي</item>
+        <item quantity="two">مجلدان مخفيان</item>
+        <item quantity="few">%d مجلدات مخفية</item>
+        <item quantity="many">%d مجلدًا مخفيًا</item>
+        <item quantity="other">%d مجلد مخفي</item>
+    </plurals>
     <string name="rescan">إعادة فحص المكتبة</string>
     <string name="rescan_sub">أغانيك تتزامن مع الجهاز تلقائياً؛ استخدمه لإعادة قراءة كاملة</string>
+    <string name="set_ai">الذكاء الاصطناعي المحلي</string>
+    <string name="ai_mix">مزيج الذكاء الاصطناعي</string>
+    <string name="ai_enable">مزيج الذكاء الاصطناعي</string>
+    <string name="ai_enable_sub">يتعلم ما تستمع إليه فعليًا، بالكامل على جهازك، وينشئ لك قائمة تشغيل. لا تُرسل أي بيانات إلى أي مكان أبدًا، وإيقافه يمسح ما تعلّمه.</string>
+    <string name="ai_regenerate">تحديث مزيج الذكاء الاصطناعي</string>
+    <string name="ai_regenerate_sub">إعادة إنشائه الآن بالاعتماد على أحدث استماعك</string>
+    <string name="ai_regenerated">تم تحديث مزيج الذكاء الاصطناعي</string>
+    <string name="ai_disable">إيقاف مزيج الذكاء الاصطناعي</string>
+    <string name="ai_empty">استمع لبعض الأغاني وسيبدأ مزيج الذكاء الاصطناعي بتعلم ذوقك</string>
     <string name="set_playback">التشغيل</string>
     <string name="skip_silence">تخطي الصمت</string>
     <string name="skip_silence_sub">يتجاوز المقاطع الصامتة داخل المقطع الصوتي</string>
@@ -118,6 +141,8 @@
     <string name="perm_battery_sub">حتى لا يتوقف التشغيل في الخلفية</string>
     <string name="perm_bt">سماعات البلوتوث</string>
     <string name="perm_bt_sub">أزرار السماعة والسيارة وعرض اسم الأغنية</string>
+    <string name="perm_write_settings">تعديل إعدادات النظام</string>
+    <string name="perm_write_settings_sub">مطلوبة مرة واحدة لتعيين أغنية كنغمة رنين</string>
 
     <string name="perm_open">فتح</string>
     <string name="perm_xiaomi">شاومي: العرض على شاشة القفل</string>

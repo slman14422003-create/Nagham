@@ -60,6 +60,23 @@ public final class Store {
         prefs(c).edit().putInt("min_dur", s).apply();
     }
 
+    /** Folders whose songs are left out of the library (and therefore out of every playlist too). */
+    public static Set<String> hiddenFolders(Context c) {
+        Set<String> out = new HashSet<>();
+        try {
+            JSONArray a = new JSONArray(prefs(c).getString("hidden_folders", "[]"));
+            for (int i = 0; i < a.length(); i++) out.add(a.getString(i));
+        } catch (JSONException ignored) {
+        }
+        return out;
+    }
+
+    public static void setHiddenFolders(Context c, Set<String> folders) {
+        JSONArray a = new JSONArray();
+        for (String f : folders) a.put(f);
+        prefs(c).edit().putString("hidden_folders", a.toString()).apply();
+    }
+
     public static int sort(Context c) {
         return prefs(c).getInt("sort", 0);
     }
@@ -71,6 +88,7 @@ public final class Store {
     // ------------------------------------------------------------------ playlists
 
     public static final String FAV = "fav";
+    public static final String AI = "ai";
 
     public static final class Playlist {
         public String id, name;
@@ -100,13 +118,22 @@ public final class Store {
             }
         } catch (JSONException ignored) {
         }
-        boolean hasFav = false;
-        for (Playlist p : cache) if (FAV.equals(p.id)) hasFav = true;
+        boolean hasFav = false, hasAi = false;
+        for (Playlist p : cache) {
+            if (FAV.equals(p.id)) hasFav = true;
+            if (AI.equals(p.id)) hasAi = true;
+        }
         if (!hasFav) {
             Playlist f = new Playlist();
             f.id = FAV;
             f.name = c.getString(R.string.favorites);
             cache.add(0, f);
+        }
+        if (!hasAi && flag(c, "ai_enabled", false)) {
+            Playlist a = new Playlist();
+            a.id = AI;
+            a.name = c.getString(R.string.ai_mix);
+            cache.add(Math.min(1, cache.size()), a);
         }
     }
 
@@ -143,9 +170,34 @@ public final class Store {
 
     public static synchronized void rename(Context c, String id, String name) {
         Playlist p = playlist(c, id);
-        if (p != null && !FAV.equals(id)) {
+        if (p != null && !FAV.equals(id) && !AI.equals(id)) {
             p.name = name;
             save(c);
+        }
+    }
+
+    public static boolean aiEnabled(Context c) {
+        return flag(c, "ai_enabled", false);
+    }
+
+    /** Turns the local AI Mix on or off. Off also wipes the listening history it was learning from. */
+    public static synchronized void setAiEnabled(Context c, boolean on) {
+        setFlag(c, "ai_enabled", on);
+        if (on) {
+            if (playlist(c, AI) == null) {
+                Playlist p = new Playlist();
+                p.id = AI;
+                p.name = c.getString(R.string.ai_mix);
+                playlists(c).add(Math.min(1, playlists(c).size()), p);
+                save(c);
+            }
+        } else {
+            Playlist p = playlist(c, AI);
+            if (p != null) {
+                cache.remove(p);
+                save(c);
+            }
+            PlayStats.clear(c);
         }
     }
 
@@ -157,7 +209,7 @@ public final class Store {
     }
 
     public static synchronized void delete(Context c, String id) {
-        if (FAV.equals(id)) return;
+        if (FAV.equals(id) || AI.equals(id)) return;
         Playlist p = playlist(c, id);
         if (p != null) {
             cache.remove(p);

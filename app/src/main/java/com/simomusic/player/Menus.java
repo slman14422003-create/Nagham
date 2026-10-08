@@ -40,6 +40,7 @@ public final class Menus {
             l.add(Sheet.divider());
             l.add(Sheet.item(R.drawable.ic_share, c.getString(R.string.share), false, false, () -> SongInfo.share(c, t)));
             l.add(Sheet.item(R.drawable.ic_info, c.getString(R.string.song_info), false, false, () -> SongInfo.show(c, t)));
+            l.add(Sheet.item(R.drawable.ic_ring, c.getString(R.string.set_ringtone), false, false, () -> RingtoneActivity.start(c, t)));
             l.add(Sheet.divider());
             l.add(Sheet.danger(R.drawable.ic_delete, c.getString(R.string.delete_song), () ->
                     Dlg.confirm(c, t.title, c.getString(R.string.confirm_delete_song), R.string.delete, true, () -> DeleteActivity.start(c, t))));
@@ -132,6 +133,10 @@ public final class Menus {
             l.add(Sheet.item(R.drawable.ic_lock, c.getString(R.string.lock_preview), false, false, () -> {
                 if (c instanceof Activity) openLock((Activity) c);
             }));
+            Track cur = Library.byId.get(Pb.currentId());
+            if (cur != null) {
+                l.add(Sheet.item(R.drawable.ic_ring, c.getString(R.string.set_ringtone), false, false, () -> RingtoneActivity.start(c, cur)));
+            }
             return l;
         });
     }

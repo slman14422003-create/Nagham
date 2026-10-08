@@ -39,6 +39,9 @@
     <!-- Lets the lock-screen player open itself when Android would block a background launch (user-granted) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- Special access, user-granted: lets "Set as ringtone" write the system ringtone setting -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+
     <!-- In-app updates: hand the downloaded apk to the system installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
@@ -167,6 +170,12 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:noHistory="true"
+            android:theme="@style/Theme.App.Transparent" />
+        <!-- Sets a song as the ringtone through the system's own permission prompts; no screen of its own -->
+        <activity
+            android:name=".RingtoneActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
             android:theme="@style/Theme.App.Transparent" />
         <activity
             android:name=".PlayerActivity"

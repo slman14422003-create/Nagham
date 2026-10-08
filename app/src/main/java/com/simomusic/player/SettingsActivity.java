@@ -194,6 +194,7 @@ public class SettingsActivity extends AppCompatActivity {
         col.addView(new View(this), new LinearLayout.LayoutParams(1, Ui.dp(this, 10)));
         LinearLayout lib = group(col);
         lib.addView(Ui.settingRow(this, R.drawable.ic_timer, getString(R.string.set_min_dur), minLabel(), null, false, v -> pickMin()));
+        lib.addView(Ui.settingRow(this, R.drawable.ic_folder, getString(R.string.hide_folders), hiddenLabel(), null, false, v -> pickHiddenFolders()));
         lib.addView(Ui.settingRow(this, R.drawable.ic_refresh, getString(R.string.rescan), getString(R.string.rescan_sub), null, false, v -> {
             Library.scan(this, () -> Ui.toast(this,
                     getResources().getQuantityString(R.plurals.songs_n, Library.tracks.size(), Library.tracks.size())));
@@ -204,6 +205,24 @@ public class SettingsActivity extends AppCompatActivity {
                     v -> CrashGuard.share(this)));
         }
         Ui.group(this, lib);
+
+        // ---- local AI
+        col.addView(Ui.section(this, R.string.set_ai));
+        LinearLayout ai = group(col);
+        ai.addView(Ui.toggleRow(this, getString(R.string.ai_enable), getString(R.string.ai_enable_sub),
+                Store.aiEnabled(this), (v, on) -> {
+                    Store.setAiEnabled(this, on);
+                    if (on) AiEngine.generate(this);
+                    recreate();
+                }));
+        if (Store.aiEnabled(this)) {
+            ai.addView(Ui.settingRow(this, R.drawable.ic_refresh, getString(R.string.ai_regenerate), getString(R.string.ai_regenerate_sub),
+                    null, false, v -> {
+                        AiEngine.generate(this);
+                        Ui.toast(this, R.string.ai_regenerated);
+                    }));
+        }
+        Ui.group(this, ai);
 
         // ---- playback
         col.addView(Ui.section(this, R.string.set_playback));
@@ -290,6 +309,35 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    private String hiddenLabel() {
+        int n = Store.hiddenFolders(this).size();
+        return n == 0 ? getString(R.string.no_folders_hidden) : getResources().getQuantityString(R.plurals.folders_hidden_n, n, n);
+    }
+
+    /** Checklist of every folder with songs in it; unchecking one hides its songs everywhere, including playlists. */
+    private void pickHiddenFolders() {
+        Sheet.show(this, getString(R.string.hide_folders), () -> {
+            List<Sheet.Item> l = new ArrayList<>();
+            List<String> all = Library.allFolders;
+            if (all.isEmpty()) {
+                l.add(Sheet.item(R.drawable.ic_folder, getString(R.string.hide_folders_empty), false, false, () -> {
+                }));
+                return l;
+            }
+            java.util.Set<String> hidden = Store.hiddenFolders(this);
+            for (final String f : all) {
+                boolean shown = !hidden.contains(f);
+                l.add(Sheet.item(R.drawable.ic_folder, f, shown, true, () -> {
+                    java.util.Set<String> h = new java.util.HashSet<>(Store.hiddenFolders(this));
+                    if (!h.add(f)) h.remove(f);
+                    Store.setHiddenFolders(this, h);
+                    dirty = true;
+                }));
+            }
+            return l;
+        });
+    }
+
     private void fillPerms() {
         perms.removeAllViews();
         addPerm(R.drawable.ic_folder, R.string.perm_audio, R.string.perm_audio_sub, Perms.hasAudio(this), v -> Perms.askAudio(this));
@@ -300,6 +348,7 @@ public class SettingsActivity extends AppCompatActivity {
         addPerm(R.drawable.ic_list, R.string.perm_overlay, R.string.perm_overlay_sub, Perms.hasOverlay(this), v -> Perms.askOverlay(this));
         addPerm(R.drawable.ic_star, R.string.perm_chan, R.string.perm_chan_sub, Perms.hasLockChannel(this), v -> Perms.askLockChannel(this));
         addPerm(R.drawable.ic_shield, R.string.perm_battery, R.string.perm_battery_sub, Perms.hasBattery(this), v -> Perms.askBattery(this));
+        addPerm(R.drawable.ic_ring, R.string.perm_write_settings, R.string.perm_write_settings_sub, Perms.hasWriteSettings(this), v -> Perms.askWriteSettings(this));
         if (Build.VERSION.SDK_INT >= 31) {
             addPerm(R.drawable.ic_music, R.string.perm_bt, R.string.perm_bt_sub, Perms.hasBt(this), v -> Perms.askBt(this));
         }

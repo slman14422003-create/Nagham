@@ -109,6 +109,7 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
     @Override
     protected void onResume() {
         super.onResume();
+        if (Store.AI.equals(pid)) AiEngine.generate(this);
         Store.Playlist p = Store.playlist(this, pid);
         if (p == null) {
             finish();
@@ -117,15 +118,18 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
         titleHolder.removeAllViews();
         // rebuilt on every resume so a rename shows immediately
         List<ImageButton> acts = new ArrayList<>();
-        acts.add(Ui.icon(this, R.drawable.ic_add, R.string.add_songs, v -> {
-            Intent it = new Intent(this, PickSongsActivity.class);
-            it.putExtra("pid", pid);
-            Ui.go(this, it);
-        }));
+        if (!Store.AI.equals(pid)) {
+            acts.add(Ui.icon(this, R.drawable.ic_add, R.string.add_songs, v -> {
+                Intent it = new Intent(this, PickSongsActivity.class);
+                it.putExtra("pid", pid);
+                Ui.go(this, it);
+            }));
+        }
         if (!Store.FAV.equals(pid)) acts.add(Ui.icon(this, R.drawable.ic_more, R.string.more, v -> manage()));
         titleHolder.addView(Ui.topBar(this, p.name, R.drawable.ic_back, acts.toArray(new ImageButton[0])),
                 new LinearLayout.LayoutParams(-1, -2));
         ad.setData(Library.resolve(p.ids));
+        empty.setText(Store.AI.equals(pid) ? R.string.ai_empty : R.string.empty_playlist);
         updateEmpty();
     }
 
@@ -168,6 +172,23 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
     private void manage() {
         final Store.Playlist p = Store.playlist(this, pid);
         if (p == null) return;
+        if (Store.AI.equals(pid)) {
+            Sheet.show(this, p.name, () -> {
+                List<Sheet.Item> l = new ArrayList<>();
+                l.add(Sheet.item(R.drawable.ic_refresh, getString(R.string.ai_regenerate), false, false, () -> {
+                    AiEngine.generate(this);
+                    onResume();
+                    Ui.toast(this, R.string.ai_regenerated);
+                }));
+                l.add(Sheet.divider());
+                l.add(Sheet.danger(R.drawable.ic_close, getString(R.string.ai_disable), () -> {
+                    Store.setAiEnabled(this, false);
+                    finish();
+                }));
+                return l;
+            });
+            return;
+        }
         Sheet.show(this, p.name, () -> {
             List<Sheet.Item> l = new ArrayList<>();
             l.add(Sheet.item(R.drawable.ic_edit, getString(R.string.rename), false, false, () ->

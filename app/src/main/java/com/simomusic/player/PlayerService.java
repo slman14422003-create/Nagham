@@ -226,6 +226,28 @@ public class PlayerService extends MediaSessionService {
                 if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) Resume.save(PlayerService.this, player);
             }
         });
+        // local listening history for the AI Mix: a no-op unless the feature is turned on in Settings
+        player.addListener(new Player.Listener() {
+            private long curId = -1;
+
+            @Override
+            public void onMediaItemTransition(androidx.media3.common.MediaItem item, int reason) {
+                if (curId >= 0 && reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) {
+                    boolean finished = reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO
+                            || reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT;
+                    PlayStats.ended(PlayerService.this, curId, finished);
+                }
+                long id = -1;
+                if (item != null) {
+                    try {
+                        id = Long.parseLong(item.mediaId);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                curId = id;
+                if (id >= 0) PlayStats.started(PlayerService.this, id);
+            }
+        });
         // tapping the media notification opens the app itself with the full player up, so back / close land in the app
         PendingIntent open = PendingIntent.getActivity(this, 0, MainActivity.openPlayerIntent(this),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);

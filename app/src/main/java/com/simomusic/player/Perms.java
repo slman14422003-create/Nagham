@@ -84,6 +84,15 @@ public final class Perms {
         return Build.VERSION.SDK_INT < 31 || granted(c, Manifest.permission.BLUETOOTH_CONNECT);
     }
 
+    /** "Modify system settings": needed to set the default ringtone from the app (RingtoneManager). */
+    public static boolean hasWriteSettings(Context c) {
+        return Settings.System.canWrite(c);
+    }
+
+    public static void askWriteSettings(Activity a) {
+        start(a, new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + a.getPackageName())));
+    }
+
     public static boolean anyMissing(Context c) {
         return !hasAudio(c) || !hasNotif(c) || !hasFsi(c) || !hasLockChannel(c) || !hasOverlay(c) || !hasBt(c);
     }
