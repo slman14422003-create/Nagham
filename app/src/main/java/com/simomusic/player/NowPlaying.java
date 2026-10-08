@@ -328,7 +328,19 @@ public final class NowPlaying implements Player.Listener {
         }
         Art.fetch(c, au, artPx, bmp -> {
             if (!key.equals(lastArt)) return;
-            applyTint(bmp == null ? 0 : colorOf(bmp));
+            if (bmp == null) {
+                applyTint(0);
+                return;
+            }
+            // colorOf() scales the bitmap and scans every pixel; cheap on its own, but doing it here, on the
+            // UI thread, right as the cover's entrance animation plays, was dropping frames. Same background
+            // pool the cover art itself decodes on, then hand the result back to the main thread.
+            Art.EX.execute(() -> {
+                final int col = colorOf(bmp);
+                h.post(() -> {
+                    if (key.equals(lastArt)) applyTint(col);
+                });
+            });
         });
     }
 

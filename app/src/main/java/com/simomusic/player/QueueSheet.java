@@ -354,7 +354,7 @@ public final class QueueSheet {
             h.title.setTextColor(Ui.color(ctx, isCur ? R.color.accent_text : R.color.text_primary));
             h.sub.setText(Fmt.artist(ctx, md.artist == null ? null : md.artist.toString()));
             Art.load(ctx, md.artworkUri, h.art, Ui.dp(ctx, 48));
-            Ui.shape(ctx, h.card, pos == 0, pos == items.size() - 1, isCur ? R.color.accent_soft : R.color.surface);
+            Ui.shape(ctx, h.card, pos == 0 || isCur, pos == items.size() - 1 || isCur, isCur ? R.color.accent_soft : R.color.surface);
             h.scrim.setVisibility(isCur ? View.VISIBLE : View.GONE);
             h.eq.setVisibility(isCur ? View.VISIBLE : View.GONE);
             h.eq.setAnimating(isCur && playing);

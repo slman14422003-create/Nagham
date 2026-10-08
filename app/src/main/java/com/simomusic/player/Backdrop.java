@@ -12,6 +12,8 @@ public final class Backdrop {
     private Backdrop() {
     }
 
+    private static final android.os.Handler MAIN = new android.os.Handler(android.os.Looper.getMainLooper());
+
     public static ImageView view(Context c) {
         ImageView bg = new ImageView(c);
         bg.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -44,9 +46,17 @@ public final class Backdrop {
                 bg.animate().alpha(0f).setDuration(250).start();
                 return;
             }
-            bg.setImageBitmap(soft(bmp));
-            bg.setAlpha(0f);
-            bg.animate().alpha(1f).setDuration(500).start();
+            // several bitmap allocations to halve 256px down to ~24px; cheap on a background thread, but doing
+            // it on the UI thread right as the hero entrance animation starts was a real source of the jank
+            Art.EX.execute(() -> {
+                final Bitmap small = soft(bmp);
+                MAIN.post(() -> {
+                    if (!key.equals(bg.getTag(R.id.tag_art))) return;
+                    bg.setImageBitmap(small);
+                    bg.setAlpha(0f);
+                    bg.animate().alpha(1f).setDuration(500).start();
+                });
+            });
         });
     }
 }

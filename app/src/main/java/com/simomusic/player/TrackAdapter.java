@@ -259,10 +259,14 @@ public final class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.VH> {
         }
         Art.load(ctx, t.uri, h.art, Ui.dp(ctx, 52));
         // the card background (a ripple drawable) is rebuilt only when its look really changes
-        int shape = (pos == 0 ? 1 : 0) | (pos == data.size() - 1 ? 2 : 0) | (sel || isCur ? 4 : 0);
+        boolean hi = sel || isCur;
+        // a highlighted row stands on its own, so it gets all four corners rounded instead of only
+        // whichever ones the group's top/bottom position would give it (that half-rounded look was the bug)
+        boolean top = pos == 0 || hi, bottom = pos == data.size() - 1 || hi;
+        int shape = (top ? 1 : 0) | (bottom ? 2 : 0) | (hi ? 4 : 0);
         if (shape != h.shapeState) {
             h.shapeState = shape;
-            Ui.shape(ctx, h.card, pos == 0, pos == data.size() - 1, sel || isCur ? R.color.accent_soft : R.color.surface);
+            Ui.shape(ctx, h.card, top, bottom, hi ? R.color.accent_soft : R.color.surface);
         }
         boolean mark = isCur && !select;
         if (mark != h.curShown || h.tint == -1) {
