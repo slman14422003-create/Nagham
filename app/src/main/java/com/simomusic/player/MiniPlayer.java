@@ -26,6 +26,9 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
     private final ImageButton play;
     private final ProgressBar bar;
     private String lastArt = "\u0000";
+    private CharSequence lastTitle, lastArtist;
+    private int lastIcon;
+    private final Runnable gone = this::refresh;
     private final Handler h = new Handler(Looper.getMainLooper());
     private PlayerPanel panel;
     private boolean started, ticking;
@@ -194,6 +197,7 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
 
     public void start() {
         started = true;
+        Pb.onDisconnect(gone);
         Pb.add(this);
         Pb.whenReady(this::refresh);
     }
@@ -202,6 +206,7 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
         started = false;
         ticking = false;
         Pb.remove(this);
+        Pb.offDisconnect(gone);
         h.removeCallbacks(tick);
     }
 
@@ -213,6 +218,8 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
     private void refresh() {
         MediaController m = Pb.get();
         if (m == null || m.getMediaItemCount() == 0) {
+            ticking = false;
+            h.removeCallbacks(tick);
             setVisibility(GONE);
             return;
         }
@@ -226,10 +233,23 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
         schedule();
         MediaItem it = m.getCurrentMediaItem();
         if (it == null) return;
-        title.setText(it.mediaMetadata.title);
-        artist.setText(Fmt.artist(getContext(), it.mediaMetadata.artist == null ? null : it.mediaMetadata.artist.toString()));
+        CharSequence tt = it.mediaMetadata.title;
+        if (lastTitle == null || !lastTitle.toString().contentEquals(tt == null ? "" : tt)) {
+            lastTitle = tt == null ? "" : tt;
+            title.setText(tt);
+        }
+        String ar = it.mediaMetadata.artist == null ? null : it.mediaMetadata.artist.toString();
+        CharSequence shownArtist = Fmt.artist(getContext(), ar);
+        if (lastArtist == null || !lastArtist.toString().contentEquals(shownArtist)) {
+            lastArtist = shownArtist;
+            artist.setText(shownArtist);
+        }
         boolean playing = m.getPlayWhenReady() && m.getPlaybackState() != Player.STATE_ENDED;
-        play.setImageResource(playing ? R.drawable.ic_pause_fill : R.drawable.ic_play_fill);
+        int icon = playing ? R.drawable.ic_pause_fill : R.drawable.ic_play_fill;
+        if (icon != lastIcon) {      // onEvents fires for every little change: only touch what really changed
+            lastIcon = icon;
+            play.setImageResource(icon);
+        }
         String key = String.valueOf(it.mediaMetadata.artworkUri);
         if (!key.equals(lastArt)) {
             lastArt = key;

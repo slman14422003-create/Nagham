@@ -258,6 +258,8 @@
     <string name="si_file">الملف</string>
     <string name="si_folder">المجلد</string>
     <string name="resume_title">استئناف الجلسة الأخيرة</string>
+    <string name="stop_close_title">إغلاق كامل عند إزالة التطبيق</string>
+    <string name="stop_close_sub">لما تسحب التطبيق من التطبيقات الأخيرة بتوقف الموسيقى ويسكّر كل شي، فما يضل شي شغّال بالخلفية.</string>
     <string name="resume_sub">يرجّع قائمة التشغيل والأغنية والموضع لما تفتح التطبيق.</string>
     <string name="bt_profile_5">معادلي الخاص</string>
     <string name="bt_profile_5_sub">10 نطاقات من ضبطك. اضغط للتعديل.</string>

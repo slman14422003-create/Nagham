@@ -246,6 +246,8 @@
     <string name="si_file">File</string>
     <string name="si_folder">Folder</string>
     <string name="resume_title">Resume last session</string>
+    <string name="stop_close_title">Close fully when removed</string>
+    <string name="stop_close_sub">Swiping the app away from recents stops the music and closes everything, so nothing runs in the background.</string>
     <string name="resume_sub">Puts back your queue, song and position when you open the app.</string>
     <string name="bt_profile_5">My equalizer</string>
     <string name="bt_profile_5_sub">Your own 10 bands. Tap to edit.</string>

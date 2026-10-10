@@ -35,6 +35,16 @@ public final class Pb {
     private static final Handler H = new Handler(Looper.getMainLooper());
     private static Runnable sleepTask;
     public static long sleepAt;
+    private static final Set<Runnable> DISC = new CopyOnWriteArraySet<>();
+
+    /** Called on the main thread when the player service went away (closed from recents, notification, ...). */
+    public static void onDisconnect(Runnable r) {
+        DISC.add(r);
+    }
+
+    public static void offDisconnect(Runnable r) {
+        DISC.remove(r);
+    }
 
     public static void connect(Context c) {
         if (fut != null) return;
@@ -46,6 +56,13 @@ public final class Pb {
                     public void onDisconnected(MediaController controller) {
                         ctl = null;
                         fut = null;
+                        for (Runnable r : DISC) {
+                            try {
+                                r.run();
+                            } catch (RuntimeException ex) {
+                                CrashGuard.nonFatal("disconnect callback", ex);
+                            }
+                        }
                     }
                 }).buildAsync();
         fut = f;

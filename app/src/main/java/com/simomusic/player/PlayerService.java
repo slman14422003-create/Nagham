@@ -40,7 +40,9 @@ public class PlayerService extends MediaSessionService {
 
     private boolean wantsLock() {
         return player != null && player.getMediaItemCount() > 0 && player.getPlayWhenReady()
-                && player.getPlaybackState() != Player.STATE_ENDED;
+                && player.getPlaybackState() != Player.STATE_ENDED
+                // a call or another app that holds the audio focus suspends us: no lock screen over it
+                && player.getPlaybackSuppressionReason() == Player.PLAYBACK_SUPPRESSION_REASON_NONE;
     }
 
     /** Right after the screen wakes the keyguard flag can lag a moment (Xiaomi / Samsung), so retry briefly. */
@@ -268,14 +270,41 @@ public class PlayerService extends MediaSessionService {
         return session;
     }
 
+    private boolean closing;
+
+    /**
+     * Swiping the app away from recents closes it completely (setting "Close fully when removed", on by default):
+     * playback stops, the position is saved for "Resume last session", notification, lock player and overlay go away,
+     * the service stops and the process ends, so nothing keeps running in the background or fights another music app.
+     */
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        if (session == null) {
+        try {
+            boolean idle = session == null || player == null || !player.getPlayWhenReady()
+                    || player.getMediaItemCount() == 0 || player.getPlaybackState() == Player.STATE_ENDED;
+            if (idle || Store.flag(this, "stop_on_close", true)) {
+                closing = true;
+                h.removeCallbacksAndMessages(null);
+                LockLauncher.clear(this);
+                OverlayAnchor.sync(this, false);
+                if (player != null) {
+                    Resume.save(this, player);
+                    player.pause();
+                }
+                stopSelf();
+                // the app's own controller keeps the service bound; releasing the session lets go of it so the stop completes
+                h.postDelayed(() -> {
+                    try {
+                        if (session != null) session.release();
+                    } catch (RuntimeException e) {
+                        CrashGuard.nonFatal("close session", e);
+                    }
+                }, 400);
+            }
+        } catch (RuntimeException e) {
+            CrashGuard.nonFatal("task removed", e);
             stopSelf();
-            return;
         }
-        Player p = session.getPlayer();
-        if (!p.getPlayWhenReady() || p.getMediaItemCount() == 0 || p.getPlaybackState() == Player.STATE_ENDED) stopSelf();
     }
 
     @Override
@@ -291,10 +320,17 @@ public class PlayerService extends MediaSessionService {
         BtAudio.detach();
         Store.prefs(this).unregisterOnSharedPreferenceChangeListener(prefs);
         h.removeCallbacksAndMessages(null);
-        if (session != null) session.release();
-        if (player != null) player.release();
+        try {
+            if (session != null) session.release();
+        } catch (RuntimeException ignored) {
+        }
+        try {
+            if (player != null) player.release();
+        } catch (RuntimeException ignored) {
+        }
         session = null;
         player = null;
         super.onDestroy();
+        if (closing) android.os.Process.killProcess(android.os.Process.myPid());
     }
 }

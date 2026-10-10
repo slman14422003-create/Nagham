@@ -231,6 +231,8 @@ public class SettingsActivity extends AppCompatActivity {
                 Store.flag(this, "skip_silence", false), (v, on) -> Store.setFlag(this, "skip_silence", on)));
         pb.addView(Ui.toggleRow(this, getString(R.string.resume_title), getString(R.string.resume_sub),
                 Store.flag(this, "resume", true), (v, on) -> Store.setFlag(this, "resume", on)));
+        pb.addView(Ui.toggleRow(this, getString(R.string.stop_close_title), getString(R.string.stop_close_sub),
+                Store.flag(this, "stop_on_close", true), (v, on) -> Store.setFlag(this, "stop_on_close", on)));
         Ui.group(this, pb);
 
         // ---- lock screen
