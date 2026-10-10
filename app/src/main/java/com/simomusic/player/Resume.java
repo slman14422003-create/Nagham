@@ -14,6 +14,11 @@ public final class Resume {
     }
 
     private static boolean restored;
+
+    /** The player service went away: the next app open may put the saved queue back again. */
+    public static void reset() {
+        restored = false;
+    }
     private static final int MAX = 1000;
 
     /** Called from the player service; cheap enough to call on every song change / pause. */

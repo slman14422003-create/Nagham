@@ -295,6 +295,10 @@ public class PlayerService extends MediaSessionService {
                 // the app's own controller keeps the service bound; releasing the session lets go of it so the stop completes
                 h.postDelayed(() -> {
                     try {
+                        if (App.visibleCount() > 0) {     // reopened in the meantime: keep this service alive for the new screen
+                            closing = false;
+                            return;
+                        }
                         if (session != null) session.release();
                     } catch (RuntimeException e) {
                         CrashGuard.nonFatal("close session", e);
@@ -331,6 +335,6 @@ public class PlayerService extends MediaSessionService {
         session = null;
         player = null;
         super.onDestroy();
-        if (closing) android.os.Process.killProcess(android.os.Process.myPid());
+        if (closing && App.visibleCount() == 0) android.os.Process.killProcess(android.os.Process.myPid());
     }
 }

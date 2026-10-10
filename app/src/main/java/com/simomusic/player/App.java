@@ -18,6 +18,13 @@ import androidx.core.view.WindowInsetsCompat;
  */
 public class App extends Application {
     public static final String CH_LOCK = "lock_player";
+    private static int visible;
+
+    /** How many of the app's screens are on screen right now (0 = the app is in the background or was swiped away). */
+    public static int visibleCount() {
+        return visible;
+    }
+
     private static final java.util.List<java.lang.ref.WeakReference<Activity>> LIVE = new java.util.ArrayList<>();
 
     /** Re-creates every open screen so a new accent shows everywhere, including the ones behind this one. */
@@ -53,6 +60,7 @@ public class App extends Application {
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityStarted(Activity a) {
+                visible++;
                 if (Build.VERSION.SDK_INT < 35 || a instanceof FullBleed) return;
                 View content = a.findViewById(android.R.id.content);
                 if (content == null || content.getTag(R.id.tag_insets) != null) return;
@@ -75,7 +83,7 @@ public class App extends Application {
             }
             @Override public void onActivityResumed(Activity a) { }
             @Override public void onActivityPaused(Activity a) { }
-            @Override public void onActivityStopped(Activity a) { }
+            @Override public void onActivityStopped(Activity a) { if (visible > 0) visible--; }
             @Override public void onActivitySaveInstanceState(Activity a, Bundle b) { }
             @Override
             public void onActivityDestroyed(Activity a) {

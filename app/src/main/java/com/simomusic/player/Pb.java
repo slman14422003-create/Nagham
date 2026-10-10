@@ -46,9 +46,12 @@ public final class Pb {
         DISC.remove(r);
     }
 
+    private static Context appCtx;
+
     public static void connect(Context c) {
         if (fut != null) return;
         final Context app = c.getApplicationContext();
+        appCtx = app;
         SessionToken tok = new SessionToken(app, new ComponentName(app, PlayerService.class));
         final ListenableFuture<MediaController> f = new MediaController.Builder(app, tok)
                 .setListener(new MediaController.Listener() {
@@ -56,6 +59,19 @@ public final class Pb {
                     public void onDisconnected(MediaController controller) {
                         ctl = null;
                         fut = null;
+                        Resume.reset();
+                        // the service stopped while a screen is open (closed from recents and reopened quickly, or killed by
+                        // the system): connect again to a fresh one and put the saved queue back, so the player never vanishes
+                        H.postDelayed(() -> {
+                            try {
+                                if (fut == null && appCtx != null && App.visibleCount() > 0) {
+                                    connect(appCtx);
+                                    if (Library.loaded) Resume.restore(appCtx);
+                                }
+                            } catch (RuntimeException ex) {
+                                CrashGuard.nonFatal("reconnect", ex);
+                            }
+                        }, 600);
                         for (Runnable r : DISC) {
                             try {
                                 r.run();
@@ -96,6 +112,7 @@ public final class Pb {
     }
 
     public static void whenReady(Runnable r) {
+        if (ctl == null && fut == null && appCtx != null) connect(appCtx);   // never wait for a connection nobody started
         if (ctl != null) {
             try {
                 r.run();
