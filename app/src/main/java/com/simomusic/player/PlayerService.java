@@ -275,7 +275,7 @@ public class PlayerService extends MediaSessionService {
     /**
      * Swiping the app away from recents closes it completely (setting "Close fully when removed", on by default):
      * playback stops, the position is saved for "Resume last session", notification, lock player and overlay go away,
-     * the service stops and the process ends, so nothing keeps running in the background or fights another music app.
+     * the service stops (the system then drops the idle process by itself), so nothing keeps running in the background or fights another music app.
      */
     @Override
     public void onTaskRemoved(Intent rootIntent) {
@@ -335,6 +335,5 @@ public class PlayerService extends MediaSessionService {
         session = null;
         player = null;
         super.onDestroy();
-        if (closing && App.visibleCount() == 0) android.os.Process.killProcess(android.os.Process.myPid());
     }
 }

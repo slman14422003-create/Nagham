@@ -47,6 +47,7 @@ public final class Pb {
     }
 
     private static Context appCtx;
+    private static int attempts;
 
     public static void connect(Context c) {
         if (fut != null) return;
@@ -57,6 +58,7 @@ public final class Pb {
                 .setListener(new MediaController.Listener() {
                     @Override
                     public void onDisconnected(MediaController controller) {
+                        if (ctl != null && controller != ctl) return;     // an old, replaced connection letting go
                         ctl = null;
                         fut = null;
                         Resume.reset();
@@ -82,9 +84,28 @@ public final class Pb {
                     }
                 }).buildAsync();
         fut = f;
+        // a connection to a service that was just stopped can hang without ever answering: that left the player
+        // missing and every song dead until the app was closed again. Give it a few seconds, then start over.
+        H.postDelayed(() -> {
+            if (fut == f && ctl == null) {
+                CrashGuard.nonFatal("player connect timeout", new RuntimeException("no answer from the player service"));
+                try {
+                    MediaController.releaseFuture(f);
+                } catch (RuntimeException ignored) {
+                }
+                fut = null;
+                if (attempts++ < 4 && App.visibleCount() > 0) connect(app);
+            }
+        }, 3500);
         f.addListener(() -> {
             try {
-                ctl = f.get();
+                MediaController c = f.get();
+                if (fut != f) {          // replaced by a newer connection meanwhile
+                    c.release();
+                    return;
+                }
+                ctl = c;
+                attempts = 0;
                 for (Player.Listener l : LS) ctl.addListener(l);
                 List<Runnable> w = new ArrayList<>(WAIT);
                 WAIT.clear();
@@ -96,8 +117,10 @@ public final class Pb {
                     }
                 }
             } catch (Exception e) {
+                if (fut != f) return;
                 fut = null;
                 ctl = null;
+                if (attempts++ < 4 && App.visibleCount() > 0) H.postDelayed(() -> connect(app), 800);
             }
         }, ContextCompat.getMainExecutor(app));
     }
