@@ -99,12 +99,12 @@ public final class Pb {
         }, 3500);
         f.addListener(() -> {
             try {
-                MediaController c = f.get();
+                MediaController mc = f.get();
                 if (fut != f) {          // replaced by a newer connection meanwhile
-                    c.release();
+                    mc.release();
                     return;
                 }
-                ctl = c;
+                ctl = mc;
                 attempts = 0;
                 for (Player.Listener l : LS) ctl.addListener(l);
                 List<Runnable> w = new ArrayList<>(WAIT);
