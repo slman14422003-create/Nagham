@@ -461,6 +461,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         Library.removeListener(libChanged);
         searchHandler.removeCallbacks(searchRefresh);
         mini.stop();
+        pulse.cancel();          // no animator keeps running while the app is in the background
         panel.onHostStop();
         super.onStop();
     }

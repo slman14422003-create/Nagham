@@ -27,6 +27,12 @@ public final class EqView extends View {
     }
 
     @Override
+    protected void onVisibilityChanged(View v, int vis) {
+        super.onVisibilityChanged(v, vis);
+        if (vis == VISIBLE && animating) invalidate();
+    }
+
+    @Override
     protected void onDraw(Canvas c) {
         float w = getWidth(), h = getHeight(), bar = w / 5f;
         p.setStrokeWidth(bar);
@@ -37,6 +43,6 @@ public final class EqView extends View {
             float top = Math.min(h - bar / 2f, h - h * f + bar / 2f);
             c.drawLine(x, h - bar / 2f, x, top, p);
         }
-        if (animating) postInvalidateOnAnimation();
+        if (animating) postInvalidateDelayed(33);   // ~30 fps is plenty for three small bars and halves the drawing work on 90/120 Hz screens
     }
 }
