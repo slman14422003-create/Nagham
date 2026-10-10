@@ -297,6 +297,7 @@ public final class NowPlaying implements Player.Listener {
             boolean first = "\u0000".equals(lastArt);
             lastArt = key;
             Art.load(c, au, art, artPx);
+            Prefetch.upcoming(c, m, artPx);
             tintFromArt(au, key);
             if (!first && !quietArt) {
                 art.setAlpha(0.35f);

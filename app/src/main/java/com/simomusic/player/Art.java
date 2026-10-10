@@ -65,6 +65,16 @@ public final class Art {
         }
     };
 
+    /** Memory pressure: drop half of the cached covers, or all of them. */
+    public static void trim(boolean all) {
+        if (all) {
+            CACHE.evictAll();
+            MISSING.clear();
+        } else {
+            CACHE.trimToSize(CACHE.maxSize() / 2);
+        }
+    }
+
     /** Blocking: call from a background thread. */
     public static Bitmap loadSync(Context c, Uri uri, int px) {
         if (Build.VERSION.SDK_INT >= 29) {

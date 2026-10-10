@@ -21,6 +21,7 @@ public final class EqView extends View {
     }
 
     public void setAnimating(boolean a) {
+        a = a && !PowerSaver.on(getContext());     // battery saver: still bars instead of motion
         if (a == animating) return;
         animating = a;
         invalidate();

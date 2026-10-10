@@ -254,6 +254,7 @@ public final class Pb {
     }
 
     public static void sleep(int minutes) {
+        SleepFade.cancel();
         if (sleepTask != null) H.removeCallbacks(sleepTask);
         sleepTask = null;
         sleepAt = 0;
@@ -262,8 +263,10 @@ public final class Pb {
             sleepTask = () -> {
                 if (ctl != null) ctl.pause();
                 sleepAt = 0;
+                SleepFade.finish();
             };
             H.postDelayed(sleepTask, minutes * 60000L);
+            SleepFade.start(minutes * 60000L);
         }
     }
 }

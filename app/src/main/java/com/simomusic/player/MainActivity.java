@@ -43,6 +43,8 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
     }
 
     private TrackAdapter songs;
+    private final ListState listState = new ListState();
+    private String pendingShortcut;
     private final PlaylistAdapter lists = new PlaylistAdapter();
     private RecyclerView rv;
     private TextView segSongs, segLists, subtitle, emptyText;
@@ -125,6 +127,7 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
             rescan();
         }
         handleIntent(getIntent());
+        getWindow().getDecorView().post(() -> AppShortcuts.install(this));     // after the first frame, never in its way
     }
 
     @Override
@@ -136,6 +139,12 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
 
     /** Notification / lock-screen tap: show the home screen and slide the full player up over it. */
     private void handleIntent(Intent i) {
+        if (i != null && AppShortcuts.isShortcut(i.getAction())) {      // launcher long-press: Play all / Shuffle
+            pendingShortcut = i.getAction();
+            i.setAction(null);
+            runShortcut();
+            return;
+        }
         if (i == null || !ACTION_OPEN_PLAYER.equals(i.getAction())) return;
         i.setAction(null);          // consumed: a rotation or theme change must not pop the player up again
         final android.view.View decor = getWindow().getDecorView();
@@ -242,6 +251,9 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         if (ia instanceof androidx.recyclerview.widget.SimpleItemAnimator) {
             ((androidx.recyclerview.widget.SimpleItemAnimator) ia).setSupportsChangeAnimations(false);
         }
+        ListTuning.apply(rv);
+        // swipe a song to either side: play it next
+        new androidx.recyclerview.widget.ItemTouchHelper(new SwipeToQueue(this, songs)).attachToRecyclerView(rv);
         srl = new androidx.swiperefreshlayout.widget.SwipeRefreshLayout(this);
         srl.addView(rv, new ViewGroup.LayoutParams(-1, -1));
         srl.setProgressBackgroundColorSchemeColor(Ui.color(this, R.color.surface_high));
@@ -379,10 +391,21 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         Pb.play(this, shown, shuffle ? -1 : 0, shuffle);
     }
 
+    /** Starts what the launcher shortcut asked for once the library is known (right away if it already is). */
+    private void runShortcut() {
+        String a = pendingShortcut;
+        if (a == null || !Library.loaded) return;
+        pendingShortcut = null;
+        if (Library.tracks.isEmpty()) return;
+        boolean shuffle = AppShortcuts.ACTION_SHUFFLE.equals(a);
+        Pb.play(this, Library.sorted(Store.sort(this)), shuffle ? -1 : 0, shuffle);
+    }
+
     private void rescan() {
         CrashGuard.offer(this);
         Library.scan(this, () -> {
             Resume.restore(this);
+            runShortcut();
             refresh();
         });
         refresh();
@@ -406,7 +429,12 @@ public class MainActivity extends AppCompatActivity implements TrackAdapter.List
         styleSeg(segLists, R.string.tab_playlists, Store.playlists(this).size(), tab == 1);
         RecyclerView.Adapter<?> target = tab == 0 ? songs : lists;
         boolean swapped = rv.getAdapter() != target;
-        if (swapped) rv.setAdapter(target);
+        if (swapped) {
+            RecyclerView.Adapter<?> old = rv.getAdapter();
+            if (old != null) listState.save(old == songs ? 0 : 1, rv);      // each tab keeps its scroll position
+            rv.setAdapter(target);
+            listState.restore(tab, rv);
+        }
         if (tab == 1) lists.notifyDataSetChanged();
         if ((swapped || animateNext) && target.getItemCount() > 0) {
             animateNext = false;

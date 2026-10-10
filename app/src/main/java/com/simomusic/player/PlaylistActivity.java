@@ -51,6 +51,7 @@ public class PlaylistActivity extends AppCompatActivity implements TrackAdapter.
         RecyclerView rv = new RecyclerView(this);
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(ad);
+        ListTuning.apply(rv);
         rv.setClipToPadding(false);
         rv.setPadding(0, 0, 0, Ui.dp(this, 16));
         ItemTouchHelper helper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN,

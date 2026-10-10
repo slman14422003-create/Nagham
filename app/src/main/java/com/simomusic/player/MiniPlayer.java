@@ -254,6 +254,7 @@ public final class MiniPlayer extends LinearLayout implements Player.Listener {
         if (!key.equals(lastArt)) {
             lastArt = key;
             Art.load(getContext(), it.mediaMetadata.artworkUri, art, Ui.dp(getContext(), 46));
+            Prefetch.upcoming(getContext(), m, Ui.dp(getContext(), 46), Ui.dp(getContext(), 52));
         }
     }
 }

@@ -62,6 +62,7 @@ public class PickSongsActivity extends AppCompatActivity implements TrackAdapter
         RecyclerView rv = new RecyclerView(this);
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(ad);
+        ListTuning.apply(rv);
         rv.setClipToPadding(false);
         rv.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 8));
         root.addView(rv, new LinearLayout.LayoutParams(-1, 0, 1f));

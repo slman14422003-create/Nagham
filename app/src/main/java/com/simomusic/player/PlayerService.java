@@ -228,6 +228,13 @@ public class PlayerService extends MediaSessionService {
                 if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) Resume.save(PlayerService.this, player);
             }
         });
+        // home-screen widget: title, artist and play state (only does work when a widget is placed)
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onEvents(Player p, Player.Events events) {
+                PlayerWidget.sync(PlayerService.this, p);
+            }
+        });
         // local listening history for the AI Mix: a no-op unless the feature is turned on in Settings
         player.addListener(new Player.Listener() {
             private long curId = -1;
@@ -318,6 +325,7 @@ public class PlayerService extends MediaSessionService {
         } catch (Exception ignored) {
         }
         OverlayAnchor.sync(this, false);
+        PlayerWidget.idle(this);
         saveTick.removeCallbacksAndMessages(null);
         if (player != null) Resume.save(this, player);
         GroupAudio.detach();
